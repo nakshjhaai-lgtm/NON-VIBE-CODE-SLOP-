@@ -64,6 +64,12 @@
 html {
   -webkit-text-size-adjust: 100%;
   scroll-padding-top: calc(var(--header-height) + var(--space-4));
+  /* Belt and braces against sideways scroll. Wide content (tables, code,
+     the location map) is given its own overflow-x container, so nothing
+     should reach here; this guarantees the page itself never scrolls
+     horizontally if a future element misbehaves. overflow-x is set on the
+     root rather than on body so that position: sticky keeps working. */
+  overflow-x: hidden;
 }
 
 body {
@@ -683,20 +689,20 @@ blockquote {
 }
 @media (min-width: 40em) {
   .grid--2 {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 @media (min-width: 52em) {
   .grid--3 {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
   .grid--4 {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 @media (min-width: 64em) {
   .grid--4 {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 
@@ -761,12 +767,12 @@ blockquote {
 }
 @media (min-width: 40em) {
   .stat-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 @media (min-width: 56em) {
   .stat-grid--3 {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 .stat {
@@ -908,6 +914,7 @@ textarea.field__control {
 }
 .input-group .field__control {
   flex: 1;
+  min-width: 0;
 }
 
 fieldset {
@@ -1317,6 +1324,7 @@ dialog h2 {
 }
 .copyable code {
   flex: 1;
+  min-width: 0;
   background: none;
   padding: 0;
   overflow-x: auto;
@@ -1389,12 +1397,12 @@ dialog h2 {
 }
 @media (min-width: 40em) {
   .footer-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 @media (min-width: 62em) {
   .footer-grid {
-    grid-template-columns: 1.4fr repeat(4, 1fr);
+    grid-template-columns: minmax(0, 1.4fr) repeat(4, minmax(0, 1fr));
   }
 }
 .footer-col h2 {
@@ -1536,6 +1544,12 @@ dialog h2 {
 .sticky-cta__text {
   font-size: var(--text-sm);
   font-weight: var(--weight-medium);
+  /* The label yields before the action does, so a longer wording wraps
+     instead of pushing the button off the edge of a 320px screen. */
+  min-width: 0;
+}
+.sticky-cta .btn {
+  flex-shrink: 0;
 }
 .sticky-cta__text span {
   display: block;
@@ -1808,7 +1822,7 @@ mark {
 }
 .plan li {
   display: grid;
-  grid-template-columns: 1.1rem 1fr;
+  grid-template-columns: 1.1rem minmax(0, 1fr);
   gap: var(--space-2);
   align-items: start;
   margin-bottom: var(--space-2);

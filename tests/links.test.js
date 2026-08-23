@@ -228,6 +228,39 @@ describe('responsive safety', () => {
     }
   });
 
+  test('the page itself cannot scroll sideways', () => {
+    // The root carries the final guard. It is on html, not body, so that
+    // position: sticky on the header keeps working.
+    const html = rules.slice(rules.indexOf('html {'), rules.indexOf('body {'));
+    assert.match(html, /overflow-x:\s*hidden/, 'the root has no horizontal overflow guard');
+  });
+
+  test('no grid track can be forced open by its content', () => {
+    // A bare `1fr` is `minmax(auto, 1fr)`: the track cannot shrink below its
+    // content, so one long token or a wide table drags the page sideways.
+    // Every flexible track must be floored with minmax(0, ...).
+    const offenders = [];
+    for (const [, value] of rules.matchAll(/grid-template-columns:\s*([^;]+);/g)) {
+      const bare = value.match(/(?:^|[\s(,])(\d*\.?\d+)fr/g);
+      if (bare && !/minmax\(\s*0/.test(value)) offenders.push(value.trim());
+      else if (bare) {
+        // Mixed track lists: every fr must sit inside a minmax(0, ...).
+        const floored = (value.match(/minmax\(\s*0[^)]*fr\s*\)/g) || []).length;
+        if (floored < bare.length) offenders.push(value.trim());
+      }
+    }
+    assert.deepEqual(offenders, [], `unfloored fr tracks: ${offenders.join(' | ')}`);
+  });
+
+  test('flex items that hold wide content can shrink', () => {
+    // A flex item's automatic minimum size is its content. Anything holding
+    // a URL, token or <code> needs an explicit min-width: 0.
+    for (const selector of ['.input-group .field__control', '.copyable code']) {
+      const block = rules.slice(rules.indexOf(`${selector} {`));
+      assert.match(block.slice(0, 200), /min-width:\s*0/, `${selector} cannot shrink below its content`);
+    }
+  });
+
   test('images and media are constrained to their container', () => {
     assert.match(rules, /img[^{]*\{[^}]*max-width:\s*100%/s);
   });
