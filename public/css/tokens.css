@@ -1,0 +1,319 @@
+/* ==========================================================================
+   NetGuard design tokens.
+
+   Every value a component may use is declared here once. Components are not
+   permitted to invent colours, spacing, radii, shadows or durations; if a
+   value is missing from this file it gets added here first. This is the
+   system that keeps the interface consistent across all fourteen pages.
+
+   Scale rationale
+   ---------------
+   Spacing  : 4px base unit, doubling-ish steps. No value outside the ramp.
+   Type     : major-third-ish ramp capped at 44px. Print and small screens
+              reuse the same ramp via clamp(), never ad-hoc font sizes.
+   Radius   : exactly three values (sm/md/lg) plus 50% for true circles.
+   Shadow   : exactly three elevations, reserved for genuinely raised things
+              (dropdowns, dialogs, sticky bars). Static cards use borders.
+   ========================================================================== */
+
+:root {
+  color-scheme: light;
+
+  /* ---- Spacing ramp (4px base) ---- */
+  --space-1: 0.25rem;  /*  4px */
+  --space-2: 0.5rem;   /*  8px */
+  --space-3: 0.75rem;  /* 12px */
+  --space-4: 1rem;     /* 16px */
+  --space-5: 1.5rem;   /* 24px */
+  --space-6: 2rem;     /* 32px */
+  --space-7: 3rem;     /* 48px */
+  --space-8: 4rem;     /* 64px */
+  --space-9: 6rem;     /* 96px */
+
+  /* ---- Type ramp ---- */
+  --text-xs: 0.75rem;    /* 12px - legal lines, table meta only */
+  --text-sm: 0.875rem;   /* 14px - secondary text */
+  --text-base: 1rem;     /* 16px - body minimum */
+  --text-md: 1.125rem;   /* 18px - lead paragraphs */
+  --text-lg: 1.375rem;   /* 22px - h3 */
+  --text-xl: 1.75rem;    /* 28px - h2 */
+  --text-2xl: 2.25rem;   /* 36px - h1 on interior pages */
+  --text-3xl: 2.75rem;   /* 44px - homepage h1 ceiling */
+
+  --leading-tight: 1.2;   /* headings only */
+  --leading-snug: 1.4;    /* sub-headings, UI labels */
+  --leading-normal: 1.6;  /* body copy, the default */
+
+  /* Headings get slight negative tracking; body gets none. */
+  --tracking-heading: -0.015em;
+  --tracking-label: 0.02em;
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* Measure: body copy never exceeds ~72 characters. */
+  --measure: 68ch;
+  --measure-narrow: 54ch;
+
+  /* ---- Radius: three values, no more ---- */
+  --radius-sm: 3px;   /* inputs, buttons, small chips */
+  --radius-md: 6px;   /* cards, panels */
+  --radius-lg: 10px;  /* dialogs, the largest containers */
+
+  /* ---- Elevation: reserved for genuinely floating UI ---- */
+  --shadow-1: 0 1px 2px rgb(23 31 28 / 0.07);
+  --shadow-2: 0 4px 12px rgb(23 31 28 / 0.10);
+  --shadow-3: 0 12px 32px rgb(23 31 28 / 0.16);
+
+  /* ---- Motion ---- */
+  --duration-instant: 60ms;
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  /* Loading indicators only. These are the site's two infinite animations,
+     and both stop under prefers-reduced-motion. */
+  --duration-spinner: 700ms;
+  --duration-skeleton: 1400ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0.13, 1);
+
+  /* ---- Layout ---- */
+  --page-max: 68rem;      /* 1088px main column */
+  --page-wide: 78rem;     /* 1248px for the app dashboard only */
+  --gutter: var(--space-5);
+  --header-height: 4rem;
+
+  /* ---- Border widths ---- */
+  --border-hairline: 1px;
+  --border-strong: 2px;
+
+  /* ======================================================================
+     Colour.
+
+     One brand hue (a desaturated pine green, chosen because NetGuard's
+     product is protective/steady rather than "techy"), one warm secondary
+     used sparingly for emphasis, and a neutral ramp. Feedback colours
+     (positive/caution/critical) exist only to carry meaning and are never
+     used decoratively. No gradient is defined anywhere in this file.
+     ====================================================================== */
+
+  --pine-50:  #f2f6f4;
+  --pine-100: #e0eae6;
+  --pine-200: #c2d6ce;
+  --pine-300: #94b8ab;
+  --pine-400: #5e9184;
+  --pine-500: #3d7263;
+  --pine-600: #2d5b4e;
+  --pine-700: #24483d;
+  --pine-800: #1d3931;
+  --pine-900: #172b25;
+
+  --clay-100: #f7ede0;
+  --clay-300: #e0bb8b;
+  --clay-500: #b9761f;
+  --clay-600: #9a5f16;
+  --clay-700: #7a4a12;
+
+  --ink-0:   #ffffff;
+  --ink-25:  #fbfbfa;
+  --ink-50:  #f5f5f3;
+  --ink-100: #ececeb;
+  --ink-200: #dcdcd9;
+  --ink-300: #c2c2be;
+  --ink-400: #94948f;
+  --ink-500: #6e6e6a;
+  --ink-600: #55554f;
+  --ink-700: #3f3f3a;
+  --ink-800: #2a2a26;
+  --ink-900: #1a1a17;
+
+  --positive-50:  #eef6ef;
+  --positive-500: #2f7d3a;
+  --positive-700: #205a29;
+
+  --caution-50:  #fdf3e3;
+  --caution-500: #9a6412;
+  --caution-700: #74490b;
+
+  --critical-50:  #fceeed;
+  --critical-500: #a83029;
+  --critical-700: #80231e;
+
+  /* ---- Semantic assignments (light) ---- */
+  --bg-page: var(--ink-25);
+  --bg-surface: var(--ink-0);
+  --bg-sunken: var(--ink-50);
+  --bg-inset: var(--ink-100);
+  --bg-inverse: var(--pine-800);
+
+  --text-primary: var(--ink-900);
+  --text-secondary: var(--ink-600);
+  --text-muted: var(--ink-500);
+  --text-on-inverse: #eef2f0;
+  --text-on-accent: #ffffff;
+
+  /* Subtle = decorative rules between blocks (no contrast requirement).
+     Default = the visible boundary of interactive controls; it must clear
+     WCAG 1.4.11 non-text contrast at 3:1, which is why it is darker than a
+     typical hairline grey. Verified by scripts/check-contrast.js. */
+  --border-subtle: var(--ink-200);
+  --border-default: #8c8c88;
+  --border-strong-color: var(--ink-600);
+
+  --accent: var(--pine-700);
+  --accent-hover: var(--pine-800);
+  --accent-active: var(--pine-900);
+  --accent-subtle-bg: var(--pine-50);
+  --accent-subtle-border: var(--pine-200);
+  --accent-text: var(--pine-700);
+
+  --emphasis: var(--clay-600);
+  --emphasis-subtle-bg: var(--clay-100);
+  --emphasis-text: var(--clay-700);
+
+  --focus-ring: var(--clay-600);
+
+  --positive-bg: var(--positive-50);
+  --positive-fg: var(--positive-700);
+  --caution-bg: var(--caution-50);
+  --caution-fg: var(--caution-700);
+  --critical-bg: var(--critical-50);
+  --critical-fg: var(--critical-700);
+
+  --link: var(--pine-700);
+  --link-visited: #4a5a6b;
+
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas,
+    monospace;
+}
+
+/* ==========================================================================
+   Dark theme.
+
+   Applied when the user explicitly chooses it, or when they have expressed
+   no preference and their OS asks for dark. Surfaces are warm-tinted dark
+   greys (never #000) so that large areas do not smear on OLED panels, and
+   text contrast is checked against the same 4.5:1 floor as the light theme.
+   ========================================================================== */
+
+/* Explicit user choice wins over the OS preference. */
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg-page: #14171a;
+  --bg-surface: #1b1f22;
+  --bg-sunken: #202529;
+  --bg-inset: #262c30;
+  --bg-inverse: #eef2f0;
+
+  --text-primary: #e9ecea;
+  --text-secondary: #b6bdb9;
+  --text-muted: #949c98;
+  --text-on-inverse: #1a1a17;
+  --text-on-accent: #10201b;
+
+  --border-subtle: #2d3439;
+  --border-default: #6c7072;
+  --border-strong-color: #949c98;
+
+  --accent: #7fb3a2;
+  --accent-hover: #93c1b1;
+  --accent-active: #a7cfc1;
+  --accent-subtle-bg: #1d2b27;
+  --accent-subtle-border: #2f4740;
+  --accent-text: #93c1b1;
+
+  --emphasis: #d99b4a;
+  --emphasis-subtle-bg: #2b2318;
+  --emphasis-text: #e0b276;
+
+  --focus-ring: #e0b276;
+
+  --positive-bg: #16251a;
+  --positive-fg: #86c78f;
+  --caution-bg: #2a2113;
+  --caution-fg: #dcae63;
+  --critical-bg: #2c1817;
+  --critical-fg: #e79b95;
+
+  --link: #93c1b1;
+  --link-visited: #a8bccb;
+
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-2: 0 4px 12px rgb(0 0 0 / 0.45);
+  --shadow-3: 0 12px 32px rgb(0 0 0 / 0.55);
+}
+
+/* No explicit choice recorded: follow the operating system. */
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]) {
+    color-scheme: dark;
+
+    --bg-page: #14171a;
+    --bg-surface: #1b1f22;
+    --bg-sunken: #202529;
+    --bg-inset: #262c30;
+    --bg-inverse: #eef2f0;
+
+    --text-primary: #e9ecea;
+    --text-secondary: #b6bdb9;
+    --text-muted: #949c98;
+    --text-on-inverse: #1a1a17;
+    --text-on-accent: #10201b;
+
+    --border-subtle: #2d3439;
+    --border-default: #3b4349;
+    --border-strong-color: #576169;
+
+    --accent: #7fb3a2;
+    --accent-hover: #93c1b1;
+    --accent-active: #a7cfc1;
+    --accent-subtle-bg: #1d2b27;
+    --accent-subtle-border: #2f4740;
+    --accent-text: #93c1b1;
+
+    --emphasis: #d99b4a;
+    --emphasis-subtle-bg: #2b2318;
+    --emphasis-text: #e0b276;
+
+    --focus-ring: #e0b276;
+
+    --positive-bg: #16251a;
+    --positive-fg: #86c78f;
+    --caution-bg: #2a2113;
+    --caution-fg: #dcae63;
+    --critical-bg: #2c1817;
+    --critical-fg: #e79b95;
+
+    --link: #93c1b1;
+    --link-visited: #a8bccb;
+
+    --shadow-1: 0 1px 2px rgb(0 0 0 / 0.4);
+    --shadow-2: 0 4px 12px rgb(0 0 0 / 0.45);
+    --shadow-3: 0 12px 32px rgb(0 0 0 / 0.55);
+  }
+}
+
+/* ------------------------------------------------------------------ print
+
+   Ink on paper. Backgrounds are dropped so nothing wastes toner, and the
+   greys are pushed apart because print has no backlight to separate them.
+   These are still tokens: no stylesheet is allowed to name a colour. */
+
+@media print {
+  :root {
+    --bg-page: #fff;
+    --bg-surface: #fff;
+    --bg-sunken: #fff;
+    --bg-inset: #fff;
+    --bg-inverse: #fff;
+    --text-primary: #000;
+    --text-secondary: #222;
+    --text-muted: #444;
+    --text-on-inverse: #000;
+    --border-subtle: #bbb;
+    --border-default: #888;
+  }
+}

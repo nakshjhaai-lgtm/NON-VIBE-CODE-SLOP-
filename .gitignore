@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+
+# Runtime state. The database is created on first boot and holds real user
+# data; it must never be committed.
+data/
+*.db
+*.db-shm
+*.db-wal
+
+# Secrets. Configuration comes from the environment; see README.
+.env
+.env.*
+!.env.example
+
+# Editor and OS noise
+.DS_Store
+*.swp
+.idea/
+.vscode/
+
+# Logs
+*.log
+npm-debug.log*
