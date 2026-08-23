@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="NetGuard">
+  <title>NetGuard</title>
+  <!-- A shield with a blocked resolver node: the circle is a DNS lookup,
+       the bar across it is the filter refusing to answer. Kept to three
+       shapes so it stays legible at 16px. -->
+  <path d="M16 2.5 4.6 6.4v9.2c0 6.6 4.6 11.3 11.4 13.9 6.8-2.6 11.4-7.3 11.4-13.9V6.4Z" fill="#24483d"/>
+  <circle cx="16" cy="15" r="6.1" fill="none" stroke="#f2f6f4" stroke-width="2.2"/>
+  <path d="M11.9 19.3 20.1 10.7" stroke="#e0bb8b" stroke-width="2.6" stroke-linecap="round"/>
+</svg>
