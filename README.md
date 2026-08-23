@@ -1,0 +1,1 @@
+# NON-VIBE-CODE-SLOP-
