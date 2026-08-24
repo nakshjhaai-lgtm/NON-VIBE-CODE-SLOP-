@@ -459,7 +459,7 @@ async function handle(req, res) {
   }
 }
 
-const server = http.createServer((req, res) => {
+export function handleWithErrors(req, res) {
   const started = process.hrtime.bigint();
 
   res.on('finish', () => {
@@ -497,7 +497,9 @@ const server = http.createServer((req, res) => {
       ),
     );
   });
-});
+}
+
+const server = http.createServer(handleWithErrors);
 
 /* --------------------------------------------------------------- start-up */
 
@@ -519,11 +521,20 @@ function startMaintenance() {
   hourly.unref();
 }
 
-export function start() {
+let initialized = false;
+
+/** Initialise process-local indexes and storage once per server/function instance. */
+export function initialize() {
+  if (initialized) return;
   // Content is parsed at import time, so a malformed markdown file has
   // already thrown by the time we get here.
   buildSearchIndex();
   getDb();
+  initialized = true;
+}
+
+export function start() {
+  initialize();
   startMaintenance();
 
   server.listen(PORT, HOST, () => {
