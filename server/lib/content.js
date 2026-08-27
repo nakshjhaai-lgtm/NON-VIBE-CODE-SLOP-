@@ -1,53 +1,39 @@
 /**
- * Content loading.
+ * Content loading for the filesystem-free edge runtime.
  *
- * Markdown under `content/` is read once at startup, parsed, rendered and
- * cached. Reading at startup rather than per request means a request never
- * touches the filesystem, and a malformed file fails loudly at boot instead
- * of producing a broken page later.
+ * The checked-in snapshot contains the exact Markdown sources under
+ * `content/`. They are parsed, rendered and cached once when the edge bundle
+ * starts, just as they were in the former long-running server, but no runtime
+ * filesystem (and no build step) is required.
  */
-import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { join, dirname, extname, basename } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { contentFiles } from './content-data.js';
 import { parseFrontMatter, renderMarkdown, readingMinutes, toPlainText } from './markdown.js';
 
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const CONTENT_DIR = join(ROOT, 'content');
-
 function loadDirectory(name) {
-  let entries;
-  try {
-    entries = readdirSync(join(CONTENT_DIR, name));
-  } catch {
-    return [];
-  }
+  const entries = contentFiles[name] || [];
 
-  return entries
-    .filter((file) => extname(file) === '.md')
-    .map((file) => {
-      const path = join(CONTENT_DIR, name, file);
-      const source = readFileSync(path, 'utf8');
-      const { meta, body } = parseFrontMatter(source);
-      const slug = basename(file, '.md');
+  return entries.map(({ file, source, modified }) => {
+    const { meta, body } = parseFrontMatter(source);
+    const slug = file.replace(/\.md$/, '');
 
-      if (!meta.title) throw new Error(`content/${name}/${file} is missing a title in its front matter`);
-      if (!meta.description) throw new Error(`content/${name}/${file} is missing a description in its front matter`);
+    if (!meta.title) throw new Error(`content/${name}/${file} is missing a title in its front matter`);
+    if (!meta.description) throw new Error(`content/${name}/${file} is missing a description in its front matter`);
 
-      const { html: rendered, headings } = renderMarkdown(body);
-      const plain = toPlainText(body);
+    const { html: rendered, headings } = renderMarkdown(body);
+    const plain = toPlainText(body);
 
-      return {
-        slug,
-        ...meta,
-        tags: Array.isArray(meta.tags) ? meta.tags : meta.tags ? [meta.tags] : [],
-        order: meta.order ? Number(meta.order) : 99,
-        html: rendered,
-        headings,
-        plain,
-        readingMinutes: readingMinutes(body),
-        fileModified: statSync(path).mtime.toISOString().slice(0, 10),
-      };
-    });
+    return {
+      slug,
+      ...meta,
+      tags: Array.isArray(meta.tags) ? meta.tags : meta.tags ? [meta.tags] : [],
+      order: meta.order ? Number(meta.order) : 99,
+      html: rendered,
+      headings,
+      plain,
+      readingMinutes: readingMinutes(body),
+      fileModified: modified,
+    };
+  });
 }
 
 const docs = loadDirectory('docs').sort(
@@ -61,7 +47,7 @@ export function docSections() {
   const sections = [];
   for (const doc of docs) {
     const name = doc.section || 'Documentation';
-    let group = sections.find((s) => s.name === name);
+    let group = sections.find((section) => section.name === name);
     if (!group) {
       group = { name, docs: [] };
       sections.push(group);

@@ -1,109 +1,158 @@
 # NetGuard
 
-A website for a DNS resolver that blocks gambling domains at the network
-level. Server-rendered Node, one runtime dependency, no build step for the
-pages themselves.
+NetGuard is a server-rendered website for a DNS resolver that blocks gambling
+domains at the network level. The application runs as a Netlify Edge Function,
+serves its checked-in assets through Netlify's CDN, and stores application state
+in Netlify Blobs. Its project build needs no package installation, native
+module, application compiler, writable local database, Node server, or Python
+runtime.
 
-The product it describes is a demonstration: the resolver addresses are IETF
-documentation ranges, the domain is a reserved example domain, and the company
-is not incorporated. Everything that *could* be real is real, and everything
-that could not be is labelled as such rather than invented. See
-[`/content-policy`](content/) for the rules the site holds itself to.
+The product described by the site is a demonstration: resolver addresses use
+IETF documentation ranges, the domain is reserved for examples, and the company
+is not incorporated. Claims that can be demonstrated are implemented; claims
+that cannot are labelled rather than invented. See [`content/`](content/) for
+the site's source material and content policy.
 
-## Running it
+## Deploying to Netlify
 
+The repository is deploy-ready as checked in.
+
+1. Import the repository into Netlify, or connect it to an existing Netlify
+   site.
+2. Leave the build settings from [`netlify.toml`](netlify.toml) in place.
+3. Optionally set `NETGUARD_ORIGIN` for the site's canonical public URL. Netlify's
+   built-in `URL` value is used when this is omitted.
+4. Deploy.
+
+Netlify reads the configuration automatically:
+
+- `public/` is the publish directory;
+- `netlify/edge-functions/app.js` handles every application route;
+- CSS, JavaScript, fonts, images and the favicon bypass the function and are
+  served directly by the CDN;
+- the build command only confirms that checked-in assets are being used;
+- no package manager or dependency installation runs.
+
+Netlify injects the credentials and endpoints needed for Blobs into the Edge
+Function. There is no database to provision and no Blob token to add manually.
+Published production deploys share durable production state. Deploy Previews and
+old, no-longer-published deploys use keys isolated by deploy ID, so test accounts
+cannot read or overwrite production accounts.
+
+### Environment variables
+
+No secret application variable is required. The CSRF secret is a random
+HttpOnly cookie and the analytics salt is generated once inside persistent
+state.
+
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `NETGUARD_ORIGIN` | No | Canonical origin used in metadata and generated absolute URLs. Falls back to Netlify's `URL`, then `https://netguard.example`. |
+| `NETGUARD_ASSET_VERSION` | No | Cache-busting query value for checked-in CSS and JavaScript. |
+| `NETGUARD_FRAME_ANCESTORS` | No | Permitted frame ancestors for a non-production preview. Production always denies framing. |
+
+Set these in **Project configuration → Environment variables** with Functions
+scope if needed. Do not commit real values. [`.env.example`](.env.example)
+contains the same optional settings for local Netlify tooling.
+
+## Architecture
+
+```text
+content/                    authoring copies of documentation and notes
+public/                     complete, checked-in CDN assets
+netlify/edge-functions/     the Netlify request entry point
+server/db/                  versioned state repository and Blobs adapter
+server/http/                body, cookie, CSRF, routing and header policies
+server/lib/                 auth, content snapshot, validation and domain logic
+server/routes/              HTML and machine-readable route handlers
+server/views/               layout, components and page groups
+tests/                      application, security, crawl and design checks
 ```
-npm install
-npm run build     # fonts, icons, social card, diagrams
-npm start         # http://localhost:3000
-```
 
-`npm run dev` restarts on change. `npm test` runs the contrast checker and the
-full suite. Node 22.5 or newer is required, for `node:sqlite`.
+### Requests and rendering
 
-Copy `.env.example` to `.env` before deploying. `NETGUARD_CSRF_KEY` and
-`NETGUARD_ANALYTICS_SALT` must be set to persistent random values, or every
-restart invalidates all sessions and form tokens.
+The application uses the standard Fetch `Request` and `Response` APIs throughout.
+`server/lib/html.js` escapes every interpolated value by default. Pages remain
+server rendered, forms still submit to real routes, search runs on the server,
+and the coverage checker returns both HTML and JSON. Client JavaScript is only
+progressive enhancement.
 
-## How it is put together
+Markdown authoring files remain under `content/`. Their validated deployment
+snapshot is checked in at `server/lib/content-data.js`, allowing Edge isolates
+to initialise search and documentation without filesystem access or a content
+build during deployment.
 
-```
-content/          markdown for docs and notes, parsed once at boot
-public/css/       tokens.css defines the design system, main.css uses it
-public/js/        progressive enhancement only; nothing here is required
-scripts/          asset generation, contrast checking
-server/db/        schema and queries, all parameterised
-server/http/      headers, cookies, CSRF, body parsing, routing, static files
-server/lib/       templating, validation, auth, search, blocklists, content
-server/routes/    the route table and the machine-readable endpoints
-server/views/     layout, shared components, one module per page group
-tests/            184 tests over the running server
-```
+### Persistent state
 
-### The design system comes first
+Accounts, sessions, profiles, allowlists, enquiries, reviews, analytics and
+login lockouts retain the same repository interfaces in `server/db/index.js`.
+The state is a versioned JSON document in Netlify Blobs rather than a local
+SQLite file.
 
-`public/css/tokens.css` is the only file permitted to name a colour, a spacing
-value, a radius, a shadow, a duration or a font weight. `main.css` references
-tokens exclusively, and `tests/design-system.test.js` fails the build if a raw
-value creeps in. Inconsistency is what makes a site look generated, so it is
-enforced mechanically rather than by discipline.
+Each request performs a strong read. A changed document is written with an ETag
+precondition; if another Edge isolate commits first, the operation is replayed
+against the newer state. This prevents concurrent writes from silently
+clobbering one another. Record ownership checks and account-deletion cascades
+are enforced in the repository.
 
-Three radii, three shadows (floating UI only), one focus ring, a 68ch measure,
-a 16px minimum body size and 44px minimum targets. All 56 foreground and
-background pairings are contrast-checked in both themes by
-`scripts/check-contrast.js`, which runs as the first step of `npm test`.
+Netlify Blobs is intended for frequent reads and comparatively infrequent
+writes. This compact state model fits the demonstration and its existing
+feature set; a high-volume service should move the same repository contract to
+a transactional managed database.
 
-### Rendering
+### Static assets
 
-`server/lib/html.js` provides a tagged template that escapes every
-interpolation by default. Escaping is a property of the template, not
-something each page has to remember, which is why there is no XSS surface to
-audit page by page.
-
-Content lives in markdown under `content/` and is parsed, rendered and
-indexed once at startup. A file missing a title or description throws at boot
-rather than producing a broken page later.
-
-### Progressive enhancement
-
-Every page works with JavaScript disabled: forms submit to real routes,
-search runs on the server, the coverage checker returns a rendered page, and
-the FAQ expands because it is built from `<details>`. `public/js/app.js` only
-improves what already works, and every enhancement checks for its element
-before binding.
+All required CSS, JavaScript, fonts, icons, diagrams, maps and social imagery are
+committed under `public/`. Netlify supplies CDN compression, conditional
+requests and caching. No image library, font tool, native binding or asset
+compiler runs during deployment.
 
 ### Security
 
-- argon2id password hashing; five failures locks an account for fifteen minutes
-- signed double-submit CSRF tokens compared in constant time, plus an Origin check
-- opaque session cookies, HttpOnly, SameSite=Lax, Secure over HTTPS, 12 hour expiry
-- every query parameterised; ownership enforced in the `WHERE` clause
-- server-side schema validation, with only named fields reaching the database
-- CSP with a per-response nonce, no `unsafe-inline`, no `unsafe-eval`
-- 64 KiB body cap, two accepted content types, no file uploads
-- rate limits per class of route; a honeypot and a timing check on every form
-
-`npm run audit` checks the runtime dependency tree. There is one runtime
-dependency.
+- salted PBKDF2-HMAC-SHA-256 password hashes with 180,000 iterations;
+- persistent lockout after five failed sign-ins per account/address pair in
+  fifteen minutes, with equivalent password work for a missing account;
+- opaque twelve-hour sessions in HttpOnly, Secure, SameSite=Lax cookies;
+- random double-submit CSRF tokens compared in constant work, plus an Origin
+  check on POST requests;
+- ownership checks on every account-data mutation and atomic ETag writes;
+- server-side schema validation that reads only named fields;
+- escaped templates and a nonce-based Content Security Policy with neither
+  `unsafe-inline` nor `unsafe-eval` for scripts;
+- a 64 KiB body limit, two accepted content types and no file uploads;
+- per-route-class rate limits, plus honeypot and elapsed-time form checks.
 
 ### Privacy
 
-The resolver logs no queries. This site sets no cookie until you sign in,
-submit a form, or accept analytics. Page counting is first-party and stores a
-day-salted truncated hash that cannot be reversed or followed across days.
-There is no third-party request anywhere on the site, and the CSP forbids one.
+The resolver logs no DNS queries. The website sets no cookie on ordinary
+content pages; a CSRF cookie is issued when a visitor opens a form, and a
+session cookie is issued only after sign-in. First-party page counting is
+opt-in and stores a day-salted, truncated hash that cannot be followed across
+days. Browser assets make no
+third-party requests, and the Content Security Policy forbids them.
 
-## Tests
+## Optional local validation
 
+Deployment itself does not need Node. The repository's compatibility test
+harness does, because it emulates Netlify's Edge handler and static CDN using
+Node's built-in test and HTTP modules. With a recent Node release installed,
+run:
+
+```sh
+node --experimental-default-type=module --test --test-concurrency=1 "tests/*.test.js"
 ```
-npm test
-```
 
-- `tests/pages.test.js` every page renders with unique metadata and one `h1`
-- `tests/security.test.js` CSRF, injection, escaping, auth, access control, traversal
-- `tests/features.test.js` the interactive behaviour the site promises
-- `tests/design-system.test.js` token discipline and the banned visual signals
-- `tests/links.test.js` a full crawl: no broken link, no dead anchor, no overflow
+No `npm install` is needed. The suite currently contains 197 tests covering:
+
+- page rendering, unique metadata and document structure;
+- forms, search, coverage, accounts, sessions and dashboard ownership;
+- CSRF, escaping, injection payloads, authentication and traversal resistance;
+- design tokens, accessibility invariants and all 56 contrast pairs;
+- a complete internal-link and asset crawl, compression and transfer budgets.
+
+For a local platform-level preview, Netlify CLI can run the repository with its
+own `netlify dev` command. That CLI is optional development tooling and is not
+installed or invoked by the deploy.
 
 ## Licence
 

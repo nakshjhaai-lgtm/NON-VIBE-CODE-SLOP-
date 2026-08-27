@@ -271,17 +271,16 @@ export function helpPage() {
 /* --------------------------------------------------------------- status */
 
 /**
- * Status is derived from real process state: uptime of this web process and
- * whether the database answers. Nothing here is a hard-coded green tick.
+ * Status is derived from the current edge request and whether persistent
+ * storage answers. Nothing here is a hard-coded green tick.
  */
-export function statusPage({ components, history, startedAt }) {
+export function statusPage({ components, history, loadedAt }) {
   const worst = components.some((c) => c.state === 'down')
     ? 'down'
     : components.some((c) => c.state === 'degraded')
       ? 'degraded'
       : 'operational';
 
-  const tone = worst === 'operational' ? 'positive' : worst === 'degraded' ? 'caution' : 'critical';
   const headline =
     worst === 'operational'
       ? 'All components responding'
@@ -293,7 +292,7 @@ export function statusPage({ components, history, startedAt }) {
     ${pageHeader({
       title: 'Service status',
       lead: 'Measured when you loaded this page, not fetched from a dashboard someone updates by hand.',
-      meta: `Web process started ${formatDate(startedAt.slice(0, 10))}`,
+      meta: `Edge application instance loaded ${formatDate(loadedAt.slice(0, 10))}`,
     })}
 
     <div class="section">
@@ -354,8 +353,8 @@ export function statusPage({ components, history, startedAt }) {
             <h2>What this page is not</h2>
             <p class="text-sm">
               It is not an uptime percentage measured by a third party, and there is no external monitoring service
-              behind it. It reports what this web process can see about itself right now. A total outage would take
-              this page down with it, which is the honest weakness of a self-hosted status page.
+              behind it. It reports what this edge request can verify about the application and its storage right now.
+              A total outage would take this page down with it, which is the honest weakness of an internal status page.
             </p>
             <p class="text-sm">
               If the site is unreachable and you need to know whether it is us, email

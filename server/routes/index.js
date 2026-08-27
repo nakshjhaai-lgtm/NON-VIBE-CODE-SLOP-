@@ -33,7 +33,6 @@ import {
   caseStudyPage,
   contentPolicyPage,
   coveragePage,
-  coverageResult,
   accessibilityPage,
   securityPage,
 } from '../views/pages/marketing.js';
@@ -53,7 +52,7 @@ import { sitemapXml, robotsTxt, securityTxt, opensearchXml, webManifest, rssFeed
 
 export const router = new Router();
 
-const STARTED_AT = new Date().toISOString();
+const INSTANCE_LOADED_AT = new Date().toISOString();
 
 /* ------------------------------------------------------- machine-readable */
 
@@ -510,7 +509,7 @@ router.get('/status', (ctx) => {
     robots: 'noindex, follow',
     content: statusPage({
       components,
-      startedAt: STARTED_AT,
+      loadedAt: INSTANCE_LOADED_AT,
       history: [
         {
           date: '2026-07-22',
@@ -524,7 +523,7 @@ router.get('/status', (ctx) => {
           duration: '41 minutes',
           title: 'Website returned 502 for a subset of requests',
           detail:
-            'A deployment restarted the process without draining connections. Requests in flight failed. Deployments now wait for in-flight requests to finish.',
+            'A deployment replaced an application instance before its active requests had completed. Requests in flight failed. Deployment handling was changed to let active requests finish.',
         },
       ],
     }),
@@ -657,7 +656,7 @@ router.get('/register', (ctx) => {
   if (ctx.user) return ctx.redirect('/dashboard');
   return ctx.render({
     title: 'Create an account',
-    description: `Create a ${site.name} account for the hosted plan. We store an email address, a display name and an argon2id password hash.`,
+    description: `Create a ${site.name} account for the hosted plan. We store an email address, a display name and a salted PBKDF2 password hash.`,
     crumbs: [{ href: '/register', label: 'Create an account' }],
     robots: 'noindex, nofollow',
     content: registerPage({ csrf: ctx.csrf, issuedAt: ctx.formIssuedAt }),
@@ -955,7 +954,7 @@ router.post('/api/coverage', (ctx) => {
   });
 });
 
-router.post('/api/pageview', (ctx) => {
+router.post('/api/pageview', async (ctx) => {
   if (!ctx.analyticsAccepted) return ctx.json(204, null);
 
   const path = String(ctx.body.path || '').slice(0, 200);
@@ -973,7 +972,7 @@ router.post('/api/pageview', (ctx) => {
   analytics.record({
     day,
     path,
-    visitorHash: visitorHash(ctx.ip, String(ctx.req.headers['user-agent'] || ''), day),
+    visitorHash: await visitorHash(ctx.ip, String(ctx.req.headers['user-agent'] || ''), day),
     referrerHost,
     utm: {
       source: String(ctx.body.utm_source || '').slice(0, 60),
@@ -1087,7 +1086,7 @@ export function buildSearchIndex() {
       url: '/security',
       title: 'Report a vulnerability',
       summary: 'Coordinated disclosure policy, scope and safe harbour.',
-      body: 'argon2id CSRF parameterised queries content security policy nonce rate limit safe harbour scope security.txt.',
+      body: 'PBKDF2 SHA-256 CSRF atomic ETag writes ownership checks content security policy nonce rate limit safe harbour scope security.txt.',
     },
     {
       url: '/status',
@@ -1105,7 +1104,7 @@ export function buildSearchIndex() {
       url: '/privacy',
       title: 'Privacy policy',
       summary: 'Everything this website and this resolver store about you.',
-      body: 'No query logs argon2id session cookie analytics day-salted hash UK GDPR rights ICO processors retention.',
+      body: 'No query logs PBKDF2 session cookie analytics day-salted hash UK GDPR rights ICO processors retention.',
     },
     {
       url: '/cookies',

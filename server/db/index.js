@@ -1,185 +1,270 @@
 /**
- * SQLite storage.
+ * Small transactional data store for Netlify Blobs.
  *
- * Uses node:sqlite from the standard library, so the running site has exactly
- * one runtime dependency. Every statement in this file is prepared with bound
- * parameters; string-built SQL is never used anywhere in the codebase.
- *
- * Access rules that matter for security live here rather than in routes:
- * queries that read or mutate a user's own data always take the owner id as a
- * bound parameter and filter on it in SQL, so a tampered id in a request
- * cannot reach another account's rows.
+ * Netlify Edge Functions have no durable writable filesystem, so a local
+ * database file cannot safely back accounts or forms. Application state is represented
+ * as one compact JSON document in a site-scoped Blob. Each request reads with
+ * strong consistency and commits with an ETag precondition; if another edge
+ * isolate won the write, the request is replayed against the newer document.
+ * This preserves the original relational ownership rules without a native
+ * database binary, a package install, or a build step.
  */
-import { DatabaseSync } from 'node:sqlite';
-import { mkdirSync } from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { randomUUID, randomBytes, createHash } from 'node:crypto';
+import { randomToken, sha256Hex } from '../lib/crypto.js';
 
-const root = fileURLToPath(new URL('../..', import.meta.url));
+const SCHEMA_VERSION = 1;
+const MAX_COMMIT_ATTEMPTS = 5;
 
-const SCHEMA = `
-PRAGMA journal_mode = WAL;
-PRAGMA foreign_keys = ON;
+const sqlTimestamp = (date = new Date()) => date.toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, '');
+const clone = (value) => (value === undefined ? undefined : structuredClone(value));
 
-CREATE TABLE IF NOT EXISTS users (
-  id            TEXT PRIMARY KEY,
-  email         TEXT NOT NULL UNIQUE,
-  password_hash TEXT NOT NULL,
-  display_name  TEXT NOT NULL,
-  role          TEXT NOT NULL DEFAULT 'member' CHECK (role IN ('member','admin')),
-  created_at    TEXT NOT NULL DEFAULT (datetime('now')),
-  last_login_at TEXT
-);
+export const now = () => Date.now();
+export const newId = () => globalThis.crypto.randomUUID();
+export const token = (bytes = 32) => randomToken(bytes);
 
-CREATE TABLE IF NOT EXISTS sessions (
-  id          TEXT PRIMARY KEY,
-  user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  created_at  INTEGER NOT NULL,
-  expires_at  INTEGER NOT NULL,
-  user_agent  TEXT
-);
-CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
-
--- One filtering profile per user; the dashboard reads and writes only these.
-CREATE TABLE IF NOT EXISTS profiles (
-  id           TEXT PRIMARY KEY,
-  user_id      TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  label        TEXT NOT NULL,
-  lists        TEXT NOT NULL DEFAULT 'gambling',
-  safe_search  INTEGER NOT NULL DEFAULT 0,
-  created_at   TEXT NOT NULL DEFAULT (datetime('now'))
-);
-CREATE INDEX IF NOT EXISTS idx_profiles_user ON profiles(user_id);
-
-CREATE TABLE IF NOT EXISTS allow_entries (
-  id         TEXT PRIMARY KEY,
-  profile_id TEXT NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  domain     TEXT NOT NULL,
-  note       TEXT NOT NULL DEFAULT '',
-  created_at TEXT NOT NULL DEFAULT (datetime('now')),
-  UNIQUE (profile_id, domain)
-);
-CREATE INDEX IF NOT EXISTS idx_allow_user ON allow_entries(user_id);
-
-CREATE TABLE IF NOT EXISTS enquiries (
-  id          TEXT PRIMARY KEY,
-  reference   TEXT NOT NULL UNIQUE,
-  name        TEXT NOT NULL,
-  email       TEXT NOT NULL,
-  org         TEXT NOT NULL DEFAULT '',
-  topic       TEXT NOT NULL,
-  message     TEXT NOT NULL,
-  created_at  TEXT NOT NULL DEFAULT (datetime('now')),
-  handled_at  TEXT
-);
-
--- Submitted reviews are held unpublished until a human verifies the account.
--- Nothing here is displayed as a testimonial until published = 1, which is
--- why the reviews page currently shows an empty state.
-CREATE TABLE IF NOT EXISTS reviews (
-  id          TEXT PRIMARY KEY,
-  display_name TEXT NOT NULL,
-  role        TEXT NOT NULL DEFAULT '',
-  rating      INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
-  body        TEXT NOT NULL,
-  email       TEXT NOT NULL,
-  published   INTEGER NOT NULL DEFAULT 0,
-  created_at  TEXT NOT NULL DEFAULT (datetime('now'))
-);
-
-CREATE TABLE IF NOT EXISTS login_attempts (
-  id         INTEGER PRIMARY KEY AUTOINCREMENT,
-  key        TEXT NOT NULL,
-  at         INTEGER NOT NULL,
-  ok         INTEGER NOT NULL
-);
-CREATE INDEX IF NOT EXISTS idx_attempts_key_at ON login_attempts(key, at);
-
--- First-party, cookie-less page counts. No identifiers are stored: the
--- visitor hash is salted per-day and truncated, and is only used to separate
--- unique-ish views from repeat views within one day.
-CREATE TABLE IF NOT EXISTS page_views (
-  id           INTEGER PRIMARY KEY AUTOINCREMENT,
-  day          TEXT NOT NULL,
-  path         TEXT NOT NULL,
-  visitor_hash TEXT NOT NULL,
-  referrer_host TEXT NOT NULL DEFAULT '',
-  utm_source   TEXT NOT NULL DEFAULT '',
-  utm_medium   TEXT NOT NULL DEFAULT '',
-  utm_campaign TEXT NOT NULL DEFAULT '',
-  at           INTEGER NOT NULL
-);
-CREATE INDEX IF NOT EXISTS idx_views_day_path ON page_views(day, path);
-
-CREATE TABLE IF NOT EXISTS coverage_checks (
-  id         INTEGER PRIMARY KEY AUTOINCREMENT,
-  domain     TEXT NOT NULL,
-  listed     INTEGER NOT NULL,
-  at         INTEGER NOT NULL
-);
-`;
-
-let db;
-
-export function getDb() {
-  if (db) return db;
-  const file = process.env.NETGUARD_DB || path.join(root, 'data', 'netguard.db');
-  if (file !== ':memory:') mkdirSync(path.dirname(file), { recursive: true });
-  db = new DatabaseSync(file);
-  db.exec(SCHEMA);
-  return db;
+export function createDatabaseState() {
+  return {
+    version: SCHEMA_VERSION,
+    meta: {
+      created_at: new Date().toISOString(),
+      analytics_salt: token(16),
+      last_maintenance_at: 0,
+    },
+    users: [],
+    sessions: [],
+    profiles: [],
+    allow_entries: [],
+    enquiries: [],
+    reviews: [],
+    login_attempts: [],
+    page_views: [],
+    coverage_checks: [],
+    flashes: {},
+    counters: { login_attempts: 0, page_views: 0, coverage_checks: 0 },
+  };
 }
 
-/** Test helper: swap in an isolated in-memory database. */
-export function useDatabase(instance) {
-  db = instance;
-  if (db) db.exec(SCHEMA);
-  return db;
+function normaliseState(value) {
+  if (value === null || value === undefined) return { state: createDatabaseState(), migrated: false };
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('The NetGuard data blob is not a JSON object.');
+  if (Number(value.version || 0) > SCHEMA_VERSION) throw new Error('The NetGuard data blob was written by a newer application version.');
+
+  const defaults = createDatabaseState();
+  const state = clone(value);
+  let migrated = state.version !== SCHEMA_VERSION;
+  state.version = SCHEMA_VERSION;
+
+  for (const name of [
+    'users', 'sessions', 'profiles', 'allow_entries', 'enquiries', 'reviews',
+    'login_attempts', 'page_views', 'coverage_checks',
+  ]) {
+    if (!Array.isArray(state[name])) {
+      state[name] = defaults[name];
+      migrated = true;
+    }
+  }
+  if (!state.meta || typeof state.meta !== 'object' || Array.isArray(state.meta)) {
+    state.meta = defaults.meta;
+    migrated = true;
+  }
+  for (const [key, fallback] of Object.entries(defaults.meta)) {
+    if (state.meta[key] === undefined) {
+      state.meta[key] = fallback;
+      migrated = true;
+    }
+  }
+  if (!state.flashes || typeof state.flashes !== 'object' || Array.isArray(state.flashes)) {
+    state.flashes = {};
+    migrated = true;
+  }
+  if (!state.counters || typeof state.counters !== 'object' || Array.isArray(state.counters)) {
+    state.counters = defaults.counters;
+    migrated = true;
+  }
+  for (const [key, fallback] of Object.entries(defaults.counters)) {
+    if (!Number.isSafeInteger(state.counters[key]) || state.counters[key] < 0) {
+      state.counters[key] = fallback;
+      migrated = true;
+    }
+  }
+  return { state, migrated };
+}
+
+let standalone = createDatabaseState();
+let active = null;
+let transactionTail = Promise.resolve();
+
+function current() {
+  return active?.state || standalone;
+}
+
+function changed() {
+  if (active) active.dirty = true;
+}
+
+/** Replaces the standalone in-memory state used by tests and local tooling. */
+export function useDatabase(state = createDatabaseState()) {
+  const normalised = normaliseState(state).state;
+  standalone = normalised;
+  return standalone;
 }
 
 export function resetDb() {
-  db = undefined;
+  return useDatabase(createDatabaseState());
 }
 
-export const now = () => Date.now();
-export const newId = () => randomUUID();
+/** A lightweight health probe used by the status page. */
+export function getDb() {
+  const state = current();
+  if (!state || state.version !== SCHEMA_VERSION) throw new Error('database state unavailable');
+  return state;
+}
 
-/** URL-safe random token, used for session ids and CSRF secrets. */
-export function token(bytes = 32) {
-  return randomBytes(bytes).toString('base64url');
+export class DatabaseConflictError extends Error {
+  constructor() {
+    super('The data changed while this request was being saved. Please retry.');
+    this.name = 'DatabaseConflictError';
+  }
+}
+
+/**
+ * Runs an operation against a consistent state snapshot.
+ *
+ * Storage adapters expose `load()` and `commit(data, etag)`. A commit result
+ * of `{ modified: false }` means another isolate changed the ETag first, so
+ * the side-effect-free HTTP operation is replayed with fresh state.
+ */
+export async function runInDatabase(storage, operation) {
+  let release;
+  const previous = transactionTail;
+  transactionTail = new Promise((resolve) => { release = resolve; });
+  await previous;
+
+  try {
+    for (let attempt = 0; attempt < MAX_COMMIT_ATTEMPTS; attempt++) {
+      const loaded = await storage.load();
+      const { state, migrated } = normaliseState(loaded?.data);
+      active = { state, dirty: migrated };
+
+      try {
+        maintainState();
+        const result = await operation(attempt);
+        if (!active.dirty) return result;
+
+        const committed = await storage.commit(active.state, loaded?.etag || null);
+        if (committed?.modified) {
+          standalone = clone(active.state);
+          storage.adopt?.(standalone, committed.etag);
+          return result;
+        }
+      } finally {
+        active = null;
+      }
+    }
+    throw new DatabaseConflictError();
+  } finally {
+    active = null;
+    release();
+  }
+}
+
+/** In-memory implementation with the same optimistic concurrency contract. */
+export function createMemoryStorage(initial = createDatabaseState()) {
+  let data = normaliseState(initial).state;
+  let revision = 1;
+  standalone = data;
+
+  return {
+    load() {
+      return { data: clone(data), etag: `"memory-${revision}"` };
+    },
+    commit(next, etag) {
+      if (etag !== `"memory-${revision}"`) return { modified: false };
+      data = clone(next);
+      revision++;
+      standalone = data;
+      return { modified: true, etag: `"memory-${revision}"` };
+    },
+    adopt(next) {
+      data = clone(next);
+      standalone = data;
+    },
+    reset(next = createDatabaseState()) {
+      data = normaliseState(next).state;
+      revision++;
+      standalone = data;
+    },
+    state() {
+      return clone(data);
+    },
+  };
+}
+
+/** Purges bounded-lifetime data at most once per hour. */
+export function maintainState(force = false) {
+  const state = current();
+  const at = now();
+  if (!force && at - Number(state.meta.last_maintenance_at || 0) < 60 * 60 * 1000) return;
+
+  state.sessions = state.sessions.filter((row) => row.expires_at > at);
+  const activeSessions = new Set(state.sessions.map((row) => row.id));
+  for (const sessionId of Object.keys(state.flashes)) {
+    if (!activeSessions.has(sessionId)) delete state.flashes[sessionId];
+  }
+  state.login_attempts = state.login_attempts.filter((row) => row.at > at - 24 * 60 * 60 * 1000);
+  const oldestDay = new Date(at - 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  state.page_views = state.page_views.filter((row) => row.day >= oldestDay);
+  state.meta.last_maintenance_at = at;
+  // Updating the maintenance timestamp is itself a state change.
+  changed();
 }
 
 // ---------------------------------------------------------------- users
 
 export const users = {
   create({ email, passwordHash, displayName, role = 'member' }) {
-    const id = newId();
-    getDb()
-      .prepare('INSERT INTO users (id, email, password_hash, display_name, role) VALUES (?, ?, ?, ?, ?)')
-      .run(id, email, passwordHash, displayName, role);
-    return this.byId(id);
+    const state = current();
+    const normalEmail = String(email).toLowerCase();
+    if (state.users.some((row) => row.email === normalEmail)) throw new Error('email already exists');
+    const row = {
+      id: newId(),
+      email: normalEmail,
+      password_hash: passwordHash,
+      display_name: displayName,
+      role,
+      created_at: sqlTimestamp(),
+      last_login_at: null,
+    };
+    state.users.push(row);
+    changed();
+    return clone(row);
   },
   byId(id) {
-    return getDb().prepare('SELECT * FROM users WHERE id = ?').get(id);
+    return clone(current().users.find((row) => row.id === id));
   },
   byEmail(email) {
-    return getDb().prepare('SELECT * FROM users WHERE email = ?').get(email);
+    const normalEmail = String(email || '').toLowerCase();
+    return clone(current().users.find((row) => row.email === normalEmail));
   },
   touchLogin(id) {
-    getDb().prepare("UPDATE users SET last_login_at = datetime('now') WHERE id = ?").run(id);
+    const row = current().users.find((entry) => entry.id === id);
+    if (!row) return;
+    row.last_login_at = sqlTimestamp();
+    changed();
   },
   count() {
-    return getDb().prepare('SELECT COUNT(*) AS n FROM users').get().n;
+    return current().users.length;
   },
-  /**
-   * Deletes the account. Sessions, profiles and allowlist entries go with it
-   * through ON DELETE CASCADE, so there is no orphaned row and no archived
-   * copy kept "just in case".
-   */
   remove(id) {
-    return getDb().prepare('DELETE FROM users WHERE id = ?').run(id).changes > 0;
+    const state = current();
+    const before = state.users.length;
+    state.users = state.users.filter((row) => row.id !== id);
+    if (state.users.length === before) return false;
+    const profileIds = new Set(state.profiles.filter((row) => row.user_id === id).map((row) => row.id));
+    state.sessions = state.sessions.filter((row) => row.user_id !== id);
+    state.profiles = state.profiles.filter((row) => row.user_id !== id);
+    state.allow_entries = state.allow_entries.filter((row) => row.user_id !== id && !profileIds.has(row.profile_id));
+    changed();
+    return true;
   },
 };
 
@@ -189,31 +274,52 @@ export const sessions = {
   create(userId, userAgent, ttlMs) {
     const id = token(32);
     const created = now();
-    getDb()
-      .prepare('INSERT INTO sessions (id, user_id, created_at, expires_at, user_agent) VALUES (?, ?, ?, ?, ?)')
-      .run(id, userId, created, created + ttlMs, String(userAgent || '').slice(0, 200));
+    current().sessions.push({
+      id,
+      user_id: userId,
+      created_at: created,
+      expires_at: created + ttlMs,
+      user_agent: String(userAgent || '').slice(0, 200),
+    });
+    changed();
     return id;
   },
   get(id) {
     if (!id) return undefined;
-    return getDb()
-      .prepare('SELECT s.*, u.email, u.display_name, u.role FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.id = ? AND s.expires_at > ?')
-      .get(id, now());
+    const state = current();
+    const session = state.sessions.find((row) => row.id === id);
+    if (!session) return undefined;
+    if (session.expires_at <= now()) {
+      state.sessions = state.sessions.filter((row) => row.id !== id);
+      changed();
+      return undefined;
+    }
+    const user = state.users.find((row) => row.id === session.user_id);
+    if (!user) return undefined;
+    return clone({ ...session, email: user.email, display_name: user.display_name, role: user.role });
   },
   destroy(id) {
     if (!id) return;
-    getDb().prepare('DELETE FROM sessions WHERE id = ?').run(id);
+    const state = current();
+    const before = state.sessions.length;
+    state.sessions = state.sessions.filter((row) => row.id !== id);
+    if (state.sessions.length !== before) changed();
   },
   destroyAllFor(userId) {
-    getDb().prepare('DELETE FROM sessions WHERE user_id = ?').run(userId);
+    const state = current();
+    const before = state.sessions.length;
+    state.sessions = state.sessions.filter((row) => row.user_id !== userId);
+    if (state.sessions.length !== before) changed();
   },
   countFor(userId) {
-    return getDb()
-      .prepare('SELECT COUNT(*) AS n FROM sessions WHERE user_id = ? AND expires_at > ?')
-      .get(userId, now()).n;
+    const at = now();
+    return current().sessions.filter((row) => row.user_id === userId && row.expires_at > at).length;
   },
   purgeExpired() {
-    getDb().prepare('DELETE FROM sessions WHERE expires_at <= ?').run(now());
+    const state = current();
+    const before = state.sessions.length;
+    state.sessions = state.sessions.filter((row) => row.expires_at > now());
+    if (state.sessions.length !== before) changed();
   },
 };
 
@@ -221,57 +327,70 @@ export const sessions = {
 
 export const profiles = {
   create(userId, label, lists = 'gambling') {
-    const id = newId();
-    getDb().prepare('INSERT INTO profiles (id, user_id, label, lists) VALUES (?, ?, ?, ?)').run(id, userId, label, lists);
-    return this.forUser(userId).find((p) => p.id === id);
+    const row = {
+      id: newId(),
+      user_id: userId,
+      label,
+      lists,
+      safe_search: 0,
+      created_at: sqlTimestamp(),
+    };
+    current().profiles.push(row);
+    changed();
+    return clone(row);
   },
   forUser(userId) {
-    return getDb().prepare('SELECT * FROM profiles WHERE user_id = ? ORDER BY created_at').all(userId);
+    return current().profiles
+      .filter((row) => row.user_id === userId)
+      .sort((a, b) => a.created_at.localeCompare(b.created_at))
+      .map(clone);
   },
-  /** Ownership is enforced in SQL, not by comparing in JS after the fetch. */
   ownedBy(id, userId) {
-    return getDb().prepare('SELECT * FROM profiles WHERE id = ? AND user_id = ?').get(id, userId);
+    return clone(current().profiles.find((row) => row.id === id && row.user_id === userId));
   },
-  /**
-   * Partial update. Only the fields present in `patch` are written, and the
-   * WHERE clause carries the owner, so a guessed id updates zero rows rather
-   * than someone else's profile.
-   */
   update(id, userId, patch = {}) {
-    const existing = this.ownedBy(id, userId);
-    if (!existing) return false;
-    const label = patch.label === undefined ? existing.label : patch.label;
-    const lists = patch.lists === undefined ? existing.lists : patch.lists;
-    const safeSearch = patch.safeSearch === undefined ? existing.safe_search : patch.safeSearch ? 1 : 0;
-    const result = getDb()
-      .prepare('UPDATE profiles SET label = ?, lists = ?, safe_search = ? WHERE id = ? AND user_id = ?')
-      .run(label, lists, safeSearch, id, userId);
-    return result.changes > 0;
+    const row = current().profiles.find((entry) => entry.id === id && entry.user_id === userId);
+    if (!row) return false;
+    if (patch.label !== undefined) row.label = patch.label;
+    if (patch.lists !== undefined) row.lists = patch.lists;
+    if (patch.safeSearch !== undefined) row.safe_search = patch.safeSearch ? 1 : 0;
+    changed();
+    return true;
   },
 };
 
 export const allowEntries = {
-  /**
-   * Refuses to write unless the profile belongs to the user. Returns the new
-   * id, or null when the profile is not theirs. The caller must not assume
-   * the id it was given in the URL is one it owns.
-   */
   add(profileId, userId, domain, note = '') {
-    const owns = getDb().prepare('SELECT 1 FROM profiles WHERE id = ? AND user_id = ?').get(profileId, userId);
-    if (!owns) return null;
-    const id = newId();
-    getDb()
-      .prepare('INSERT INTO allow_entries (id, profile_id, user_id, domain, note) VALUES (?, ?, ?, ?, ?)')
-      .run(id, profileId, userId, domain, note);
-    return id;
+    const state = current();
+    if (!state.profiles.some((row) => row.id === profileId && row.user_id === userId)) return null;
+    if (state.allow_entries.some((row) => row.profile_id === profileId && row.domain === domain)) {
+      throw new Error('domain is already allowlisted for this profile');
+    }
+    const row = {
+      id: newId(),
+      profile_id: profileId,
+      user_id: userId,
+      domain,
+      note,
+      created_at: sqlTimestamp(),
+    };
+    state.allow_entries.push(row);
+    changed();
+    return row.id;
   },
   forProfile(profileId, userId) {
-    return getDb()
-      .prepare('SELECT * FROM allow_entries WHERE profile_id = ? AND user_id = ? ORDER BY domain')
-      .all(profileId, userId);
+    return current().allow_entries
+      .filter((row) => row.profile_id === profileId && row.user_id === userId)
+      .sort((a, b) => a.domain.localeCompare(b.domain))
+      .map(clone);
   },
   remove(id, userId) {
-    return getDb().prepare('DELETE FROM allow_entries WHERE id = ? AND user_id = ?').run(id, userId).changes > 0;
+    const state = current();
+    const before = state.allow_entries.length;
+    state.allow_entries = state.allow_entries.filter((row) => !(row.id === id && row.user_id === userId));
+    if (state.allow_entries.length === before) return false;
+    changed();
+    return true;
   },
 };
 
@@ -279,19 +398,27 @@ export const allowEntries = {
 
 export const enquiries = {
   create({ name, email, org, topic, message }) {
-    const id = newId();
-    // Human-quotable reference so the thank-you page and the reply can agree.
-    const reference = `NG-${new Date().getFullYear()}-${randomBytes(3).toString('hex').toUpperCase()}`;
-    getDb()
-      .prepare('INSERT INTO enquiries (id, reference, name, email, org, topic, message) VALUES (?, ?, ?, ?, ?, ?, ?)')
-      .run(id, reference, name, email, org, topic, message);
-    return { id, reference };
+    const state = current();
+    let reference;
+    do {
+      const bytes = new Uint8Array(3);
+      globalThis.crypto.getRandomValues(bytes);
+      reference = `NG-${new Date().getFullYear()}-${[...bytes].map((byte) => byte.toString(16).padStart(2, '0')).join('').toUpperCase()}`;
+    } while (state.enquiries.some((row) => row.reference === reference));
+
+    const row = {
+      id: newId(), reference, name, email, org: org || '', topic, message,
+      created_at: sqlTimestamp(), handled_at: null,
+    };
+    state.enquiries.push(row);
+    changed();
+    return { id: row.id, reference };
   },
   byReference(reference) {
-    return getDb().prepare('SELECT * FROM enquiries WHERE reference = ?').get(reference);
+    return clone(current().enquiries.find((row) => row.reference === reference));
   },
   count() {
-    return getDb().prepare('SELECT COUNT(*) AS n FROM enquiries').get().n;
+    return current().enquiries.length;
   },
 };
 
@@ -299,21 +426,27 @@ export const enquiries = {
 
 export const reviews = {
   create({ displayName, role, rating, body, email }) {
-    const id = newId();
-    getDb()
-      .prepare('INSERT INTO reviews (id, display_name, role, rating, body, email) VALUES (?, ?, ?, ?, ?, ?)')
-      .run(id, displayName, role, rating, body, email);
-    return id;
+    const row = {
+      id: newId(), display_name: displayName, role: role || '', rating, body, email,
+      published: 0, created_at: sqlTimestamp(),
+    };
+    current().reviews.push(row);
+    changed();
+    return row.id;
   },
   published() {
-    return getDb().prepare('SELECT display_name, role, rating, body, created_at FROM reviews WHERE published = 1 ORDER BY created_at DESC').all();
+    return current().reviews
+      .filter((row) => row.published === 1)
+      .sort((a, b) => b.created_at.localeCompare(a.created_at))
+      .map(({ display_name, role, rating, body, created_at }) => clone({ display_name, role, rating, body, created_at }));
   },
   pendingCount() {
-    return getDb().prepare('SELECT COUNT(*) AS n FROM reviews WHERE published = 0').get().n;
+    return current().reviews.filter((row) => row.published === 0).length;
   },
   summary() {
-    const row = getDb().prepare('SELECT COUNT(*) AS n, AVG(rating) AS avg FROM reviews WHERE published = 1').get();
-    return { count: row.n, average: row.n ? Number(row.avg.toFixed(2)) : null };
+    const rows = current().reviews.filter((row) => row.published === 1);
+    const average = rows.length ? rows.reduce((sum, row) => sum + row.rating, 0) / rows.length : null;
+    return { count: rows.length, average: average === null ? null : Number(average.toFixed(2)) };
   },
 };
 
@@ -321,85 +454,125 @@ export const reviews = {
 
 export const loginAttempts = {
   record(key, ok) {
-    getDb().prepare('INSERT INTO login_attempts (key, at, ok) VALUES (?, ?, ?)').run(key, now(), ok ? 1 : 0);
+    const state = current();
+    state.counters.login_attempts++;
+    state.login_attempts.push({ id: state.counters.login_attempts, key, at: now(), ok: ok ? 1 : 0 });
+    changed();
   },
   recentFailures(key, windowMs) {
-    return getDb()
-      .prepare('SELECT COUNT(*) AS n FROM login_attempts WHERE key = ? AND ok = 0 AND at > ?')
-      .get(key, now() - windowMs).n;
+    const since = now() - windowMs;
+    return current().login_attempts.filter((row) => row.key === key && row.ok === 0 && row.at > since).length;
   },
-  /** Oldest failure still inside the window, used to tell the user when to retry. */
   oldestFailure(key, windowMs) {
-    const row = getDb()
-      .prepare('SELECT MIN(at) AS at FROM login_attempts WHERE key = ? AND ok = 0 AND at > ?')
-      .get(key, now() - windowMs);
-    return row?.at ?? null;
+    const since = now() - windowMs;
+    const rows = current().login_attempts.filter((row) => row.key === key && row.ok === 0 && row.at > since);
+    return rows.length ? Math.min(...rows.map((row) => row.at)) : null;
   },
   clear(key) {
-    getDb().prepare('DELETE FROM login_attempts WHERE key = ?').run(key);
+    const state = current();
+    const before = state.login_attempts.length;
+    state.login_attempts = state.login_attempts.filter((row) => row.key !== key);
+    if (state.login_attempts.length !== before) changed();
   },
   purgeOlderThan(ms) {
-    getDb().prepare('DELETE FROM login_attempts WHERE at < ?').run(now() - ms);
+    const state = current();
+    const before = state.login_attempts.length;
+    state.login_attempts = state.login_attempts.filter((row) => row.at >= now() - ms);
+    if (state.login_attempts.length !== before) changed();
   },
 };
 
 // ------------------------------------------------------------ analytics
 
-const ANALYTICS_SALT = process.env.NETGUARD_ANALYTICS_SALT || token(16);
+/** Day-salted, truncated hash that cannot be followed from one day to the next. */
+export async function visitorHash(ip, userAgent, day) {
+  return (await sha256Hex(`${current().meta.analytics_salt}:${day}:${ip}:${userAgent}`)).slice(0, 16);
+}
 
-/**
- * Day-salted, truncated hash. Deliberately not reversible and not stable
- * across days, so it cannot be used to follow a person over time.
- */
-export function visitorHash(ip, userAgent, day) {
-  return createHash('sha256').update(`${ANALYTICS_SALT}:${day}:${ip}:${userAgent}`).digest('hex').slice(0, 16);
+function sinceDay(days) {
+  return new Date(now() - days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 }
 
 export const analytics = {
-  record({ day, path: p, visitorHash: vh, referrerHost = '', utm = {} }) {
-    getDb()
-      .prepare(
-        `INSERT INTO page_views (day, path, visitor_hash, referrer_host, utm_source, utm_medium, utm_campaign, at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      )
-      .run(day, p, vh, referrerHost, utm.source || '', utm.medium || '', utm.campaign || '', now());
+  record({ day, path, visitorHash: hash, referrerHost = '', utm = {} }) {
+    const state = current();
+    state.counters.page_views++;
+    state.page_views.push({
+      id: state.counters.page_views,
+      day,
+      path,
+      visitor_hash: hash,
+      referrer_host: referrerHost,
+      utm_source: utm.source || '',
+      utm_medium: utm.medium || '',
+      utm_campaign: utm.campaign || '',
+      at: now(),
+    });
+    changed();
   },
   topPages(days = 7, limit = 8) {
-    return getDb()
-      .prepare(
-        `SELECT path, COUNT(*) AS views, COUNT(DISTINCT visitor_hash) AS visitors
-         FROM page_views WHERE day >= date('now', ?) GROUP BY path ORDER BY views DESC LIMIT ?`,
-      )
-      .all(`-${days} days`, limit);
+    const grouped = new Map();
+    for (const row of current().page_views.filter((entry) => entry.day >= sinceDay(days))) {
+      const value = grouped.get(row.path) || { path: row.path, views: 0, visitors: new Set() };
+      value.views++;
+      value.visitors.add(row.visitor_hash);
+      grouped.set(row.path, value);
+    }
+    return [...grouped.values()]
+      .map((row) => ({ path: row.path, views: row.views, visitors: row.visitors.size }))
+      .sort((a, b) => b.views - a.views || a.path.localeCompare(b.path))
+      .slice(0, limit);
   },
   topCampaigns(days = 30, limit = 6) {
-    return getDb()
-      .prepare(
-        `SELECT utm_source, utm_medium, utm_campaign, COUNT(*) AS views
-         FROM page_views
-         WHERE day >= date('now', ?) AND utm_source <> ''
-         GROUP BY utm_source, utm_medium, utm_campaign ORDER BY views DESC LIMIT ?`,
-      )
-      .all(`-${days} days`, limit);
+    const grouped = new Map();
+    for (const row of current().page_views.filter((entry) => entry.day >= sinceDay(days) && entry.utm_source)) {
+      const key = `${row.utm_source}\u0000${row.utm_medium}\u0000${row.utm_campaign}`;
+      const value = grouped.get(key) || {
+        utm_source: row.utm_source, utm_medium: row.utm_medium, utm_campaign: row.utm_campaign, views: 0,
+      };
+      value.views++;
+      grouped.set(key, value);
+    }
+    return [...grouped.values()].sort((a, b) => b.views - a.views).slice(0, limit);
   },
   totals(days = 7) {
-    return getDb()
-      .prepare(
-        `SELECT COUNT(*) AS views, COUNT(DISTINCT visitor_hash) AS visitors
-         FROM page_views WHERE day >= date('now', ?)`,
-      )
-      .get(`-${days} days`);
+    const rows = current().page_views.filter((entry) => entry.day >= sinceDay(days));
+    return { views: rows.length, visitors: new Set(rows.map((row) => row.visitor_hash)).size };
   },
   purgeOlderThan(days = 90) {
-    getDb().prepare("DELETE FROM page_views WHERE day < date('now', ?)").run(`-${days} days`);
+    const state = current();
+    const before = state.page_views.length;
+    state.page_views = state.page_views.filter((row) => row.day >= sinceDay(days));
+    if (state.page_views.length !== before) changed();
   },
 };
 
 export const coverageChecks = {
   record(domain, listed) {
-    getDb().prepare('INSERT INTO coverage_checks (domain, listed, at) VALUES (?, ?, ?)').run(domain, listed ? 1 : 0, now());
+    const state = current();
+    state.counters.coverage_checks++;
+    state.coverage_checks.push({ id: state.counters.coverage_checks, domain, listed: listed ? 1 : 0, at: now() });
+    changed();
   },
   total() {
-    return getDb().prepare('SELECT COUNT(*) AS n FROM coverage_checks').get().n;
+    return current().coverage_checks.length;
+  },
+};
+
+/** Persistent one-shot notices keyed by opaque session ID. */
+export const flashMessages = {
+  set(sessionId, notice) {
+    if (!sessionId) return;
+    current().flashes[sessionId] = clone(notice);
+    changed();
+  },
+  take(sessionId) {
+    if (!sessionId) return null;
+    const notice = current().flashes[sessionId] || null;
+    if (notice) {
+      delete current().flashes[sessionId];
+      changed();
+    }
+    return clone(notice);
   },
 };

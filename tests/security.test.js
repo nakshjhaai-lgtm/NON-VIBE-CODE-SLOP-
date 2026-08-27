@@ -252,7 +252,7 @@ describe('output escaping', () => {
   });
 });
 
-describe('SQL injection', () => {
+describe('injection payloads', () => {
   test('injection payloads are treated as data everywhere they are accepted', async () => {
     const client = fresh();
     const payloads = [
@@ -282,11 +282,11 @@ describe('authentication', () => {
     return users.create({ email, passwordHash: await hashPassword(password), displayName: 'Owner' });
   }
 
-  test('passwords are stored as argon2id hashes, never in the clear', async () => {
+  test('passwords are stored as versioned PBKDF2 hashes, never in the clear', async () => {
     fresh();
     const user = await seedUser();
     const row = users.byId(user.id);
-    assert.match(row.password_hash, /^\$argon2id\$/);
+    assert.match(row.password_hash, /^pbkdf2-sha256\$180000\$[A-Za-z0-9_-]+\$[A-Za-z0-9_-]+$/);
     assert.ok(!row.password_hash.includes(password));
   });
 
