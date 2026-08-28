@@ -16,7 +16,7 @@ import { site, primaryNav, footerNav, legal } from '../lib/site.js';
 import { env } from '../lib/env.js';
 
 /** Stable cache-busting suffix; a deployment never generates assets at runtime. */
-export const ASSET_VERSION = env('NETGUARD_ASSET_VERSION', '2026-08-27');
+export const ASSET_VERSION = env('NETGUARD_ASSET_VERSION', '2026-08-28-2');
 
 const v = (path) => `${path}?v=${ASSET_VERSION}`;
 
