@@ -48,7 +48,7 @@ import {
   dashboardAccountPage,
 } from '../views/pages/account.js';
 import { notFoundPage } from '../views/pages/errors.js';
-import { sitemapXml, robotsTxt, securityTxt, opensearchXml, webManifest, rssFeed } from './feeds.js';
+import { sitemapXml, robotsTxt, llmsTxt, securityTxt, opensearchXml, webManifest, rssFeed } from './feeds.js';
 
 export const router = new Router();
 
@@ -61,6 +61,7 @@ const INSTANCE_LOADED_AT = new Date().toISOString();
 
 router.get('/robots.txt', (ctx) => ctx.text(200, robotsTxt(), 'text/plain; charset=utf-8'));
 router.get('/sitemap.xml', (ctx) => ctx.text(200, sitemapXml(), 'application/xml; charset=utf-8'));
+router.get('/llms.txt', (ctx) => ctx.text(200, llmsTxt(), 'text/plain; charset=utf-8'));
 router.get('/blog/feed.xml', (ctx) => ctx.text(200, rssFeed(), 'application/rss+xml; charset=utf-8'));
 router.get('/opensearch.xml', (ctx) =>
   ctx.text(200, opensearchXml(), 'application/opensearchdescription+xml; charset=utf-8'),

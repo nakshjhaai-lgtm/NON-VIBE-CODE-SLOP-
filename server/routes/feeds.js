@@ -1,6 +1,6 @@
 /**
- * Machine-readable endpoints: robots.txt, sitemap.xml, the RSS feed, the
- * OpenSearch description, the web app manifest and security.txt.
+ * Machine-readable endpoints: robots.txt, sitemap.xml, llms.txt, the RSS
+ * feed, the OpenSearch description, the web app manifest and security.txt.
  *
  * These are generated from the same data the pages use, so a new document
  * cannot be published and then be missing from the sitemap.
@@ -96,6 +96,54 @@ Disallow: /api/
 Disallow: /search?
 
 Sitemap: ${site.origin}/sitemap.xml
+`;
+}
+
+/**
+ * The llms.txt discovery file (https://llmstxt.org): valid CommonMark with
+ * exactly one H1, a blockquote summary, and links grouped under H2 sections.
+ * Curated, not a mirror of the sitemap — every entry is a page that helps an
+ * AI system understand what this product is and how to use it.
+ */
+export function llmsTxt() {
+  return `# NetGuard
+
+> NetGuard is a self-hosted DNS resolver that blocks gambling domains for every device on a network, with published blocklist sources and no client software to install.
+
+NetGuard sits between a network's devices and the DNS system. When a queried name is on an enabled list, it answers that the name does not exist and the connection never starts. It is a speed bump, not a lock, and the site says so plainly.
+
+## Product
+- [How it works](${site.origin}/how-it-works): Packet-level explanation of how DNS filtering works and what it can and cannot do
+- [Check coverage](${site.origin}/coverage): Look up whether a domain is on a published blocklist, no account required
+- [Pricing](${site.origin}/pricing): Self-hosted and organisation plans and their costs
+
+## Documentation
+- [Quick start](${site.origin}/docs/quick-start): Set up filtering on a single device in about fifteen minutes
+- [Router setup](${site.origin}/docs/router-setup): Apply filtering at the router so every device on the network is covered
+- [Troubleshooting](${site.origin}/docs/troubleshooting): Common failure modes and how to diagnose them
+- [Limitations](${site.origin}/docs/limitations): The documented ways DNS filtering can be bypassed or defeated
+- [Encrypted DNS](${site.origin}/docs/encrypted-dns): How DNS over HTTPS and DNS over TLS interact with filtering
+- [Self-hosting](${site.origin}/docs/self-hosting): Run your own resolver instance
+- [HTTP API](${site.origin}/docs/api): Programmatic access to the coverage lookup
+
+## Notes
+- [Why we do not advertise a blocklist count](${site.origin}/blog/why-blocklist-counts-are-meaningless): Why 69 suffix rules is more honest than 4.2 million domains
+- [DNS over HTTPS broke our assumptions](${site.origin}/blog/dns-over-https-broke-our-assumptions): A filtering failure traced to browser behaviour, not the resolver
+- [All notes](${site.origin}/blog): The engineering notes index
+
+## Trust and legal
+- [About NetGuard](${site.origin}/about): Who builds it, how it is funded, and what it will not do
+- [Privacy policy](${site.origin}/privacy): What the site and resolver store, why, and for how long
+- [Terms of service](${site.origin}/terms): The terms under which the service is provided
+- [Content and proof policy](${site.origin}/content-policy): How claims, statistics, and reviews are sourced and verified
+- [Gambling support resources](${site.origin}/help): Free confidential support for gambling harm
+
+## Optional
+- [Service status](${site.origin}/status): Current uptime and incidents
+- [Changelog](${site.origin}/changelog): Release history
+- [Case study](${site.origin}/case-study): A real deployment write-up
+- [Accessibility statement](${site.origin}/accessibility): Known accessibility limitations and how to report them
+- [Report a vulnerability](${site.origin}/security): Security disclosure process
 `;
 }
 
