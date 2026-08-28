@@ -1,14 +1,8 @@
-# Dependencies
+# Optional local development tooling
 node_modules/
+.netlify/
 
-# Runtime state. The database is created on first boot and holds real user
-# data; it must never be committed.
-data/
-*.db
-*.db-shm
-*.db-wal
-
-# Secrets. Configuration comes from the environment; see README.
+# Secrets and local configuration
 .env
 .env.*
 !.env.example
@@ -21,4 +15,3 @@ data/
 
 # Logs
 *.log
-npm-debug.log*

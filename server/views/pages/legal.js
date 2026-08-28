@@ -6,7 +6,7 @@ import { html } from '../../lib/html.js';
 import { site, legal } from '../../lib/site.js';
 import { pageHeader, message } from '../components.js';
 
-const UPDATED = '2026-08-21';
+const UPDATED = '2026-08-27';
 
 export function privacyPage() {
   return html`
@@ -22,9 +22,10 @@ export function privacyPage() {
           <div class="prose stack">
             <h2 id="short">The short version</h2>
             <p>
-              The resolver does not log your queries. This website stores an account row if you make one, an enquiry
-              if you send one, a review if you leave one, and an anonymous page count if you agreed to analytics.
-              Nothing is shared with anyone, and there is no advertising or tracking of any kind.
+              The resolver does not log your queries. This website stores an account record if you make one, an
+              enquiry if you send one, a review if you leave one, and a privacy-preserving page count if you agreed to
+              analytics. Service providers process data only to run the site; it is not sold, used for advertising or
+              shared for tracking.
             </p>
 
             <h2 id="controller">Who is responsible</h2>
@@ -54,9 +55,9 @@ export function privacyPage() {
 
             <h3>If you make an account</h3>
             <p>
-              Your email address, a display name, and your password hashed with argon2id. We never see or store the
-              password itself. Also the time you last signed in, and one row per active session containing a random
-              identifier, an expiry and the browser's user agent string.
+              Your email address, a display name, and a salted PBKDF2-HMAC-SHA-256 hash of your password. We never
+              store the password itself. We also keep the time you last signed in, and one record per active session
+              containing a random identifier, an expiry and the browser's user agent string.
             </p>
             <p>Kept until you delete the account, which you can do yourself from the dashboard.</p>
 
@@ -75,30 +76,32 @@ export function privacyPage() {
 
             <h3>If you accept analytics</h3>
             <p>
-              A row per page view containing the path, the date, the referring site's hostname, any UTM parameters in
-              the URL, and a visitor hash. The hash is SHA-256 of your IP address, user agent, the date, and a secret
-              salt, truncated to sixteen characters. It changes every day by design, so it cannot be used to follow
-              you across days, and it cannot be reversed to recover your address.
+              A record per page view containing the path, the date, the referring site's hostname, any UTM parameters
+              in the URL, and a visitor hash. The hash is SHA-256 of your IP address, user agent, the date, and a
+              secret salt, truncated to sixteen characters. It changes every day by design, so it cannot be used to
+              follow you across days, and it cannot be reversed to recover your address.
             </p>
             <p>
-              Analytics is off until you accept it. If you reject it, no page views are recorded at all. Rows older
+              Analytics is off until you accept it. If you reject it, no page views are recorded at all. Records older
               than ninety days are deleted.
             </p>
 
             <h3>Server logs</h3>
             <p>
-              The web server records the method, path, status and duration of each request so faults can be diagnosed.
-              IP addresses appear in rate-limiting state held in memory, which is discarded when the window ends and
-              when the process restarts.
+              The edge application records the method, path, status and duration of each request so faults can be
+              diagnosed. General rate-limit counters containing an IP address stay only in an edge isolate's memory
+              until their window ends or the isolate is replaced. Failed sign-ins also store a combined email-address
+              and IP-address key for up to 24 hours so the fifteen-minute lockout survives isolate replacement; a
+              successful sign-in removes that key.
             </p>
 
             <h2 id="not">What we do not do</h2>
             <ul>
               <li>No advertising, no advertising identifiers, no remarketing.</li>
               <li>No third-party analytics. Nothing on this site loads from another origin; the Content-Security-Policy forbids it.</li>
-              <li>No selling or sharing of data. There is nobody we share it with.</li>
+              <li>No selling of data and no sharing for advertising or tracking. Processors receive only what they need to operate the service.</li>
               <li>No profiling, and no automated decisions about you.</li>
-              <li>No transfer outside the United Kingdom and the European Economic Area.</li>
+              <li>No international transfer except where a named service provider needs it to deliver the service under contractual safeguards.</li>
             </ul>
 
             <h2 id="lawful">Lawful bases</h2>
@@ -123,9 +126,11 @@ export function privacyPage() {
 
             <h2 id="processors">Processors</h2>
             <p>
-              The hosted plan runs on servers we rent in the United Kingdom, and the provider is a processor for the
-              purposes of that hosting. Transactional email is sent through a provider in the European Economic Area.
-              We use no other processors, and specifically no analytics, tag management or customer messaging service.
+              Netlify provides this site's content delivery, edge application runtime and persistent Blob storage, and
+              is a processor for those purposes. Requests are handled on its global edge network and may be processed
+              outside the United Kingdom and European Economic Area under its contractual safeguards. Transactional
+              email is sent through a provider in the European Economic Area. We use no third-party analytics, tag
+              management or customer messaging service.
             </p>
 
             <h2 id="changes">Changes</h2>
@@ -176,8 +181,8 @@ export function cookiesPage({ reset = false } = {}) {
               </div>`
             : ''}
           <p>
-            This site sets no cookie at all until you either sign in, submit a form, or accept analytics. There is no
-            third-party cookie, because nothing on this site is loaded from a third party.
+            This site sets no cookie on ordinary content pages. It sets one when you load a form, sign in, or record
+            an analytics choice. There is no third-party cookie, because nothing on this site is loaded from a third party.
           </p>
 
           <div class="table-wrap">

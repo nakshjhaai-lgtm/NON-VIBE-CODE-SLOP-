@@ -34,7 +34,7 @@ function inline(text) {
   });
 
   // Links: [label](href). Only http(s), mailto, tel and site-relative URLs.
-  out = out.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (match, label, href) => {
+  out = out.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_match, label, href) => {
     const safe = /^(https?:\/\/|mailto:|tel:|\/|#)/i.test(href);
     if (!safe) return label;
     const external = /^https?:\/\//i.test(href);
@@ -45,6 +45,7 @@ function inline(text) {
   out = out.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
   out = out.replace(/(^|[\s(])\*([^*\n]+)\*/g, '$1<em>$2</em>');
 
+  // deno-lint-ignore no-control-regex
   out = out.replace(/\u0000CODE(\d+)\u0000/g, (_, i) => `<code>${codes[Number(i)]}</code>`);
   return out;
 }
@@ -173,7 +174,7 @@ export function parseFrontMatter(source) {
     const idx = line.indexOf(':');
     if (idx === -1) continue;
     const key = line.slice(0, idx).trim();
-    let value = line.slice(idx + 1).trim();
+    const value = line.slice(idx + 1).trim();
     if (value.startsWith('[') && value.endsWith(']')) {
       meta[key] = value
         .slice(1, -1)

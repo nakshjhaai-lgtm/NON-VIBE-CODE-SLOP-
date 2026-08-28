@@ -9,6 +9,7 @@ import { test, describe, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
 import { startServer, stopServer, Client } from './helpers.js';
+import { checkContrast } from './contrast-check.js';
 
 const origin = await startServer();
 after(stopServer);
@@ -239,15 +240,10 @@ describe('accessibility invariants', () => {
     assert.match(block, /0\.01ms|0s\b|none/);
   });
 
-  test('the contrast checker covers the whole palette and passes', async () => {
-    const { execFile } = await import('node:child_process');
-    const { promisify } = await import('node:util');
-    const { stdout } = await promisify(execFile)('node', ['scripts/check-contrast.js'], {
-      cwd: new URL('..', import.meta.url).pathname,
-    });
-    assert.match(stdout, /0 failing/);
-    const pairs = Number(stdout.match(/(\d+) pairs/)?.[1] || 0);
-    assert.ok(pairs >= 50, `only ${pairs} colour pairs are checked`);
+  test('the contrast checker covers the whole palette and passes', () => {
+    const result = checkContrast(tokens);
+    assert.equal(result.failures, 0, result.rows.filter((row) => row.startsWith('FAIL')).join('\n'));
+    assert.ok(result.rows.length >= 50, `only ${result.rows.length} colour pairs are checked`);
   });
 });
 

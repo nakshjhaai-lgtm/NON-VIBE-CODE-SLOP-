@@ -1,8 +1,8 @@
 /**
  * Sign in, register, and the signed-in dashboard.
  *
- * The dashboard is a real application surface: it reads and writes rows the
- * user owns, and every write goes through an ownership check in SQL.
+ * The dashboard is a real application surface: it reads and writes records the
+ * user owns, and every mutation enforces ownership in the data repository.
  */
 import { html } from '../../lib/html.js';
 import { icon } from '../icons.js';
@@ -72,7 +72,7 @@ export function loginPage({ csrf, values = {}, errors = {}, notice, issuedAt, ne
             <ul class="text-sm">
               <li>Five failed attempts locks the account for fifteen minutes. The message says how long is left.</li>
               <li>The response is the same whether or not the address has an account, so this form cannot be used to find out who is registered.</li>
-              <li>Your password is hashed with argon2id and is never stored, logged or emailed in any other form.</li>
+              <li>Your password is salted and hashed with PBKDF2-HMAC-SHA-256 and is never stored, logged or emailed in any other form.</li>
               <li>The session cookie is HttpOnly and expires after twelve hours.</li>
             </ul>
             <p class="text-sm">
@@ -151,7 +151,7 @@ export function registerPage({ csrf, values = {}, errors = {}, issuedAt }) {
             <ul class="text-sm">
               <li>Your email address, to sign you in and to reply to you.</li>
               <li>The name you enter, shown in the dashboard.</li>
-              <li>An argon2id hash of your password.</li>
+              <li>A salted PBKDF2-HMAC-SHA-256 hash of your password.</li>
               <li>Your profile configuration: which lists are on, and any allowlist entries.</li>
             </ul>
             <p class="text-sm">

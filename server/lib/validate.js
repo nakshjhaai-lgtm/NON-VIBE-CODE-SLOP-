@@ -26,7 +26,7 @@ const DOMAIN = /^(?=.{1,253}$)(?!-)[a-z0-9-]{1,63}(?<!-)(?:\.(?!-)[a-z0-9-]{1,63
 export function clean(value) {
   if (typeof value !== 'string') return '';
   return value
-    // eslint-disable-next-line no-control-regex
+    // deno-lint-ignore no-control-regex
     .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, '')
     .replace(/\r\n/g, '\n')
     .trim();

@@ -1,13 +1,14 @@
 /**
- * In-process rate limiting.
+ * Edge-isolate rate limiting.
  *
- * A fixed-window counter per key. Deliberately memory-only: this app runs as
- * a single process, and persisting general request counts would mean writing
- * a row for every hit. Login throttling is separate and *is* persisted (see
- * db.loginAttempts) because it must survive a restart.
+ * A fixed-window counter per key. General request counts are deliberately kept
+ * in isolate memory rather than writing persistent state on every hit. Login
+ * throttling is separate and is persisted (see db.loginAttempts), so account
+ * lockouts remain effective when an isolate is replaced.
  */
 
 const buckets = new Map();
+let nextSweepAt = 0;
 
 /**
  * @param {string} key
@@ -16,6 +17,10 @@ const buckets = new Map();
  */
 export function hit(key, { limit, windowMs }) {
   const now = Date.now();
+  if (now >= nextSweepAt) {
+    sweep(now);
+    nextSweepAt = now + 60_000;
+  }
   const bucket = buckets.get(key);
 
   if (!bucket || bucket.resetAt <= now) {
@@ -42,13 +47,13 @@ export function reset(key) {
 
 export function resetAll() {
   buckets.clear();
+  nextSweepAt = 0;
 }
 
 /** Drops expired buckets so the map cannot grow without bound. */
-export function sweep() {
-  const now = Date.now();
+export function sweep(at = Date.now()) {
   for (const [key, bucket] of buckets) {
-    if (bucket.resetAt <= now) buckets.delete(key);
+    if (bucket.resetAt <= at) buckets.delete(key);
   }
 }
 

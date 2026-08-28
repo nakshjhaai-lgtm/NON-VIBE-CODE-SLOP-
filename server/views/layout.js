@@ -10,12 +10,13 @@
  * before paint to avoid a flash of the wrong theme, and it carries the
  * per-response CSP nonce.
  */
-import { html, raw, escapeHtml, jsonScript } from '../lib/html.js';
+import { html, raw, jsonScript } from '../lib/html.js';
 import { icon, logoMark } from './icons.js';
 import { site, primaryNav, footerNav, legal } from '../lib/site.js';
+import { env } from '../lib/env.js';
 
-/** Cache-busting suffix so CSS/JS can be served immutable but still update. */
-export const ASSET_VERSION = process.env.NETGUARD_ASSET_VERSION || String(Date.now());
+/** Stable cache-busting suffix; a deployment never generates assets at runtime. */
+export const ASSET_VERSION = env('NETGUARD_ASSET_VERSION', '2026-08-27');
 
 const v = (path) => `${path}?v=${ASSET_VERSION}`;
 

@@ -5,6 +5,7 @@
  * navigation, contact details, and the externally-sourced statistics used on
  * the site (each with the source it came from, which the page must print).
  */
+import { env } from './env.js';
 
 export const site = {
   name: 'NetGuard',
@@ -13,7 +14,7 @@ export const site = {
     'NetGuard is a self-hosted DNS resolver that blocks gambling domains for every device on a network. Published blocklist sources, no account needed to test coverage.',
   // Deliberately a reserved example domain: this project is not deployed at a
   // real address, and inventing one would be a false claim.
-  origin: process.env.NETGUARD_ORIGIN || 'https://netguard.example',
+  origin: env('NETGUARD_ORIGIN', env('URL', 'https://netguard.example')).replace(/\/$/, ''),
   locale: 'en_GB',
   lang: 'en-GB',
   themeColor: '#24483d',

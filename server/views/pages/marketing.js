@@ -7,9 +7,9 @@
  */
 import { html } from '../../lib/html.js';
 import { icon } from '../icons.js';
-import { site, statistics, statisticsCaveat, legal } from '../../lib/site.js';
+import { site, statistics, legal } from '../../lib/site.js';
 import { counts, lists, neverBlock } from '../../lib/blocklists.js';
-import { pageHeader, panel, badge, message, stat, accordionItem, copyable, copyStatusRegion, formatDate } from '../components.js';
+import { pageHeader, badge, message, accordionItem, copyable, copyStatusRegion, formatDate } from '../components.js';
 
 /* ---------------------------------------------------------- how it works */
 
@@ -845,7 +845,7 @@ export function securityPage() {
     ${pageHeader({
       title: 'Report a vulnerability',
       lead: 'How to tell us about a security problem, what we will do, and what this site does to prevent one.',
-      updated: '2026-08-21',
+      updated: '2026-08-27',
     })}
 
     <div class="section">
@@ -884,18 +884,18 @@ export function securityPage() {
             <h2 id="measures">What this site does</h2>
             <p>Not a complete list, but the parts a reporter usually wants to know.</p>
             <ul>
-              <li>Passwords are hashed with argon2id at 19 MiB and two iterations, never stored or logged in any other form.</li>
+              <li>Passwords are salted and hashed with PBKDF2-HMAC-SHA-256 at 180,000 iterations, never stored or logged in any other form.</li>
               <li>Login is limited to five failures per account and address per fifteen minutes, and the response is identical whether or not the account exists.</li>
               <li>Sessions are opaque random identifiers in an HttpOnly, Secure, SameSite=Lax cookie, rotated on login and destroyed on logout.</li>
-              <li>Every state-changing request carries a signed CSRF token, compared in constant time, with the Origin header checked as well.</li>
-              <li>Every database query is parameterised. There is no string concatenation anywhere near SQL.</li>
-              <li>Ownership is enforced in the query itself, so a guessed identifier returns nothing rather than someone else's record.</li>
+              <li>Every form and account-changing request carries a random double-submit CSRF token, compared in constant time, with the Origin header checked as well.</li>
+              <li>State writes use atomic ETag preconditions, so concurrent requests cannot silently overwrite one another.</li>
+              <li>Ownership is checked before every account-data mutation, so a guessed identifier returns nothing rather than changing someone else's record.</li>
               <li>Input is validated server-side against a schema, and only fields named in that schema are read from a submission.</li>
               <li>Output escaping is a property of the template engine, not something each page remembers to do.</li>
               <li>Content-Security-Policy allows scripts only from this origin with a per-response nonce; there is no <code class="mono">unsafe-inline</code> and no <code class="mono">unsafe-eval</code>.</li>
               <li>Request bodies are capped at 64 KiB and only two content types are parsed.</li>
               <li>There are no file uploads, because nothing here needs one.</li>
-              <li>Dependencies are audited on every build. The runtime has exactly one, the argon2 binding.</li>
+              <li>The deployed application has no third-party runtime package, native binding or runtime build step.</li>
             </ul>
 
             <h2 id="config">Reporting configuration</h2>

@@ -1,34 +1,34 @@
 /**
- * CSRF protection: signed double-submit tokens.
+ * CSRF protection: double-submit tokens plus a same-origin check.
  *
- * A random secret is stored in an HttpOnly cookie. Each rendered form embeds
- * a token derived from that secret with an HMAC, so a token cannot be forged
- * without the server key, and a cross-site page cannot read the cookie to
- * mint one. Verification is constant-time.
- *
- * The Origin header is checked as well, which catches the case of a browser
- * that sends cookies on a cross-site form post.
+ * A cryptographically random secret is stored in an HttpOnly, SameSite cookie
+ * and copied into every rendered form. A cross-site page can submit a form but
+ * cannot read that cookie, so it cannot supply the matching field. Comparing
+ * the two values directly removes the old runtime-local signing key and makes
+ * tokens reliable across Netlify edge isolates without weakening the
+ * double-submit property.
  */
-import { createHmac, timingSafeEqual, randomBytes } from 'node:crypto';
+import { randomToken, timingSafeEqual } from '../lib/crypto.js';
 
-const KEY = process.env.NETGUARD_CSRF_KEY || randomBytes(32).toString('hex');
 export const CSRF_COOKIE = 'ng_csrf';
 export const CSRF_FIELD = '_csrf';
 
 export function newSecret() {
-  return randomBytes(24).toString('base64url');
+  return randomToken(24);
 }
 
 export function tokenFor(secret) {
-  return createHmac('sha256', KEY).update(String(secret)).digest('base64url');
+  return String(secret || '');
 }
 
 export function verifyToken(secret, token) {
   if (!secret || !token) return false;
-  const expected = Buffer.from(tokenFor(secret));
-  const given = Buffer.from(String(token));
-  if (expected.length !== given.length) return false;
-  return timingSafeEqual(expected, given);
+  return timingSafeEqual(secret, token);
+}
+
+function requestHeader(req, name) {
+  if (typeof req?.headers?.get === 'function') return req.headers.get(name);
+  return req?.headers?.[name] || req?.headers?.[name.toLowerCase()];
 }
 
 /**
@@ -36,9 +36,9 @@ export function verifyToken(secret, token) {
  * a reason string when it should be rejected.
  */
 export function checkOrigin(req, host) {
-  const origin = req.headers.origin;
+  const origin = requestHeader(req, 'origin');
   // Same-origin form posts from older agents may omit Origin; fall back to Referer.
-  const source = origin && origin !== 'null' ? origin : req.headers.referer;
+  const source = origin && origin !== 'null' ? origin : requestHeader(req, 'referer');
   if (!source) return 'missing Origin and Referer headers';
   let parsed;
   try {

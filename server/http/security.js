@@ -1,40 +1,31 @@
 /**
- * Security headers.
+ * Security headers for the standards-based edge runtime.
  *
- * A per-response nonce is generated so the Content-Security-Policy can stay
- * strict: no 'unsafe-inline', no 'unsafe-eval', no wildcard hosts. The site
- * loads no third-party scripts, fonts, styles or images at all, so 'self' is
- * genuinely sufficient rather than aspirational.
+ * A per-response nonce keeps the Content-Security-Policy strict: no
+ * `unsafe-inline`, no `unsafe-eval`, and no third-party asset origins.
  */
-import { randomBytes } from 'node:crypto';
+import { env } from '../lib/env.js';
+import { bytesToBase64, randomBytes } from '../lib/crypto.js';
 
-export const isProduction = () => process.env.NODE_ENV === 'production';
+export const isProduction = () => env('CONTEXT', 'production') === 'production';
 
-/**
- * Framing policy.
- *
- * Production denies framing outright. A deployment can opt into specific
- * ancestors via NETGUARD_FRAME_ANCESTORS (space-separated origins), which is
- * how this app is run inside the hosted preview pane during development.
- * The default is always 'none'.
- */
+/** Production denies framing; local previews may opt into named ancestors. */
 function frameAncestors() {
-  const configured = (process.env.NETGUARD_FRAME_ANCESTORS || '').trim();
+  const configured = env('NETGUARD_FRAME_ANCESTORS').trim();
   if (!configured || isProduction()) return "'none'";
   return configured;
 }
 
 export function makeNonce() {
-  return randomBytes(16).toString('base64');
+  return bytesToBase64(randomBytes(16));
 }
 
 /**
- * @param {string} nonce  per-response script nonce
+ * @param {string} nonce per-response script nonce
  * @param {{ https?: boolean }} opts
  */
 export function securityHeaders(nonce, { https = false } = {}) {
   const ancestors = frameAncestors();
-
   const csp = [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}'`,
@@ -48,7 +39,6 @@ export function securityHeaders(nonce, { https = false } = {}) {
     "frame-src 'none'",
     "manifest-src 'self'",
     `frame-ancestors ${ancestors}`,
-    // Legacy directive, still honoured by some agents.
     "block-all-mixed-content",
   ];
   if (https) csp.push('upgrade-insecure-requests');
@@ -60,7 +50,6 @@ export function securityHeaders(nonce, { https = false } = {}) {
     'Cross-Origin-Opener-Policy': 'same-origin',
     'Cross-Origin-Resource-Policy': 'same-origin',
     'X-Permitted-Cross-Domain-Policies': 'none',
-    // No feature on this site needs any of these.
     'Permissions-Policy': [
       'accelerometer=()', 'autoplay=()', 'camera=()', 'display-capture=()',
       'encrypted-media=()', 'fullscreen=(self)', 'geolocation=()', 'gyroscope=()',
@@ -69,40 +58,22 @@ export function securityHeaders(nonce, { https = false } = {}) {
     ].join(', '),
   };
 
-  // X-Frame-Options has no wildcard form, so it is only meaningful when we
-  // are denying outright. When ancestors are allowed, frame-ancestors above
-  // is the directive that applies.
   if (ancestors === "'none'") headers['X-Frame-Options'] = 'DENY';
-
-  if (https) {
-    headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload';
-  }
-
+  if (https) headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload';
   return headers;
 }
 
-/**
- * True when the original request reached the edge over HTTPS. Trusts
- * X-Forwarded-Proto only when the app is explicitly told it sits behind a
- * proxy, so the header cannot be spoofed in a direct-exposure deployment.
- */
+/** Works with both Fetch Requests and the small compatibility request shape. */
 export function requestIsHttps(req) {
-  if (req.socket?.encrypted) return true;
-  if (process.env.NETGUARD_TRUST_PROXY === '1') {
-    const proto = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim();
-    return proto === 'https';
+  try {
+    if (req?.url && new URL(req.url).protocol === 'https:') return true;
+  } catch {
+    // A path-only compatibility URL falls through to the socket hint.
   }
-  return false;
+  return Boolean(req?.socket?.encrypted);
 }
 
-/**
- * Client address, honouring the proxy header only when trusted. Used for
- * rate-limit keys and the salted analytics hash, never stored raw.
- */
+/** The edge adapter supplies Netlify's trusted client address here. */
 export function clientIp(req) {
-  if (process.env.NETGUARD_TRUST_PROXY === '1') {
-    const fwd = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
-    if (fwd) return fwd;
-  }
-  return req.socket?.remoteAddress || '0.0.0.0';
+  return req?.clientIp || req?.socket?.remoteAddress || '0.0.0.0';
 }
