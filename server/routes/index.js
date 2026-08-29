@@ -6,8 +6,7 @@
  * context, so headers, escaping and status codes stay consistent.
  */
 import { Router } from '../http/router.js';
-import { html } from '../lib/html.js';
-import { site, primaryNav, statistics } from '../lib/site.js';
+import { site, statistics } from '../lib/site.js';
 import { rules, validate, LIMITS as FIELD_LIMITS } from '../lib/validate.js';
 import { lookup, counts } from '../lib/blocklists.js';
 import { search, suggest, addDocument, documentCount, clearIndex } from '../lib/search.js';
@@ -23,7 +22,6 @@ import {
 } from '../lib/content.js';
 import { enquiries, reviews, profiles, allowEntries, coverageChecks, analytics, visitorHash, sessions } from '../db/index.js';
 import { attemptLogin, register, logout, SESSION_COOKIE, SESSION_TTL_MS } from '../lib/auth.js';
-import { LIMITS as RATE_LIMITS } from '../lib/rate-limit.js';
 
 import { homePage, homeSchema } from '../views/pages/home.js';
 import {
@@ -1140,7 +1138,3 @@ export function renderNotFound(ctx) {
     content: notFoundPage({ path: ctx.path }),
   });
 }
-
-export const NAV_PATHS = primaryNav.map((item) => item.href);
-export const PAGE_RATE = RATE_LIMITS.page;
-export { html };

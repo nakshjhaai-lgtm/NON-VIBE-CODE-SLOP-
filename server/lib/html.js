@@ -38,10 +38,6 @@ export function raw(value) {
   return new SafeString(String(value));
 }
 
-export function isSafe(value) {
-  return value instanceof SafeString;
-}
-
 function render(value) {
   if (value == null || value === false) return '';
   if (value instanceof SafeString) return value.value;
@@ -81,18 +77,4 @@ export function jsonScript(data) {
  */
 export function cx(...parts) {
   return parts.filter(Boolean).join(' ');
-}
-
-/**
- * Serialises a URL query string. Used for pagination and filter links so we
- * never hand-concatenate query strings.
- */
-export function qs(params) {
-  const sp = new URLSearchParams();
-  for (const [key, value] of Object.entries(params)) {
-    if (value == null || value === '') continue;
-    sp.set(key, String(value));
-  }
-  const s = sp.toString();
-  return s ? `?${s}` : '';
 }

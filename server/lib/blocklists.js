@@ -157,7 +157,3 @@ export function counts() {
     lastUpdated: lists.map((l) => l.updated).sort().at(-1),
   };
 }
-
-export function getList(id) {
-  return lists.find((list) => list.id === id);
-}

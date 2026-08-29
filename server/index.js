@@ -71,8 +71,6 @@ function buildContext(request, runtime, { url, nonce, https, cookies, csrfSecret
     method: request.method,
     url: `${url.pathname}${url.search}`,
     headers: requestHeaders,
-    clientIp: ip,
-    socket: { encrypted: https, remoteAddress: ip },
   };
 
   let response = null;

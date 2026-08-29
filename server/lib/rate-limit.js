@@ -35,12 +35,6 @@ export function hit(key, { limit, windowMs }) {
   return { ok: true, remaining: limit - bucket.count, retryAfter: 0 };
 }
 
-export function peek(key) {
-  const bucket = buckets.get(key);
-  if (!bucket || bucket.resetAt <= Date.now()) return null;
-  return bucket;
-}
-
 export function reset(key) {
   buckets.delete(key);
 }
