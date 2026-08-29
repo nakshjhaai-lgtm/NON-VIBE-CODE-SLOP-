@@ -89,5 +89,3 @@ export function starIcon() {
     '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="currentColor"><path d="m12 3.8 2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8L3.5 10l5.9-.9Z"/></svg>',
   );
 }
-
-export const iconNames = Object.keys(PATHS);

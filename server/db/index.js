@@ -101,17 +101,6 @@ function changed() {
   if (active) active.dirty = true;
 }
 
-/** Replaces the standalone in-memory state used by tests and local tooling. */
-export function useDatabase(state = createDatabaseState()) {
-  const normalised = normaliseState(state).state;
-  standalone = normalised;
-  return standalone;
-}
-
-export function resetDb() {
-  return useDatabase(createDatabaseState());
-}
-
 /** A lightweight health probe used by the status page. */
 export function getDb() {
   const state = current();

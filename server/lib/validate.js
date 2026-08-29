@@ -196,7 +196,3 @@ export function passwordStrength(password) {
   ];
   return { score, label: labels[score], hint: hints[score] };
 }
-
-export function isWeakPassword(password) {
-  return passwordStrength(password).score < 2;
-}

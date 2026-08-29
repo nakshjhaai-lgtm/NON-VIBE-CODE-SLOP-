@@ -62,18 +62,3 @@ export function securityHeaders(nonce, { https = false } = {}) {
   if (https) headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload';
   return headers;
 }
-
-/** Works with both Fetch Requests and the small compatibility request shape. */
-export function requestIsHttps(req) {
-  try {
-    if (req?.url && new URL(req.url).protocol === 'https:') return true;
-  } catch {
-    // A path-only compatibility URL falls through to the socket hint.
-  }
-  return Boolean(req?.socket?.encrypted);
-}
-
-/** The edge adapter supplies Netlify's trusted client address here. */
-export function clientIp(req) {
-  return req?.clientIp || req?.socket?.remoteAddress || '0.0.0.0';
-}
