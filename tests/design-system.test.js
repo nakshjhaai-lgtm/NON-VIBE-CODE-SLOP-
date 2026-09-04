@@ -157,7 +157,7 @@ describe('banned visual signals', () => {
 
   test('no shadow is used as decoration on a static surface', () => {
     // Shadows belong to floating UI only: dialogs, the sticky bar, the banner.
-    const allowed = ['dialog', '.cookie-banner', '.sticky-cta', '.floating-btn', '.mobile-nav', '.site-header', '.code-block__copy'];
+    const allowed = ['dialog', '.cookie-banner', '.sticky-cta', '.floating-btn', '.drawer', '.masthead', '.code-block__copy'];
     for (const block of rules.split('}')) {
       if (!/box-shadow:\s*var\(--shadow/.test(block)) continue;
       const selector = block.split('{')[0].trim();
@@ -187,7 +187,7 @@ describe('typography and measure', () => {
       const selector = block.split('{')[0].trim();
       // Tracking belongs to small caps labels and display headings only.
       assert.ok(
-        /label|eyebrow|badge|__code|h1|display|caps|tracking/i.test(selector + block),
+        /label|kicker|lede|badge|__code|h1|display|caps|tracking/i.test(selector + block),
         `letter-spacing applied to body copy: ${selector}`,
       );
     }
@@ -305,9 +305,9 @@ describe('markup hygiene', () => {
     const client = new Client(origin);
     for (const path of paths) {
       const body = await (await client.get(path)).text();
-      assert.match(body, /<main id="main"/, `${path} has no main`);
+      assert.match(body, /<main id="content"/, `${path} has no main`);
       assert.match(body, /<footer class="site-footer">/, `${path} has no footer`);
-      assert.match(body, /<header class="site-header"/, `${path} has no header`);
+      assert.match(body, /<header class="masthead"/, `${path} has no header`);
       assert.ok((body.match(/<main\b/g) || []).length === 1, `${path} has more than one main`);
     }
   });

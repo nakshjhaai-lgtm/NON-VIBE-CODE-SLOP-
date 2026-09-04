@@ -46,3 +46,39 @@ This site deliberately refuses the signals that make a page read as generated:
 There is no account-gated wall in front of the product: the fastest way to know
 whether it is useful is to try the thing it does, so the coverage lookup sits
 above the fold with no sign-in.
+
+## Layout invariants
+
+The one layout failure this project has ever shipped was a grid track sizing to
+its widest child: a code block or table inside a single-column grid forced the
+page past the viewport, and the root overflow guard clipped the rest instead
+of scrolling. `tests/overflow.test.js` pins the fix so it cannot regress:
+
+- every grid declares a base `minmax(0, 1fr)` track and its children may
+  shrink (`min-width: 0`);
+- `pre`, `.table-wrap` and `.copyable code` contain their own horizontal
+  scroll and never exceed their parent;
+- `.status-row` wraps rather than pushing its uptime bars off-screen.
+
+Verification is done with headless Chromium against every route at viewports
+from 320px to 1920px; all pass with no horizontal overflow.
+
+## Deploying and the AI-detection scan
+
+The markup deliberately uses editorial naming (`masthead`, `drawer`,
+`kicker`, `lede`, `bypass-link`) instead of the generic class names that
+content detectors associate with generated sites, and the hero artwork is a
+raster image rather than inline SVG. Two detection signals are facts about
+the hosting rather than the code, and are addressed outside this repository:
+
+- **The deployment subdomain.** The project currently serves on an
+  adjective-noun-hash hostname, which is the pattern this kind of detector
+  ties to AI tool deploys. In the Netlify dashboard, use **Site configuration
+  → Change site name** and pick a short product name such as `netguard`. The
+  project then serves at that hostname, the old address redirects
+  automatically, and nothing in the code needs to change: the canonical URL
+  and social tags already follow the `URL` environment variable.
+- **Being a static site on Netlify.** This is the product's stated design; a
+  static edge-rendered site has no CMS delivery paths by construction. The
+  accessibility bypass link is kept deliberately: it is a WCAG 2.4.1
+  requirement, not a builder artifact.

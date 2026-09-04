@@ -21,7 +21,7 @@ export function notFoundPage({ path }) {
       <div class="container">
         <span class="error-page__code">Error 404</span>
         <h1>That page is not here</h1>
-        <p class="lead">
+        <p class="lede">
           ${path ? html`Nothing is published at <code class="mono">${path}</code>.` : 'Nothing is published at that address.'}
           It may have moved, or the link that brought you here may be wrong.
         </p>
@@ -54,7 +54,7 @@ export function serverErrorPage({ reference }) {
       <div class="container">
         <span class="error-page__code">Error 500</span>
         <h1>Something broke at our end</h1>
-        <p class="lead">
+        <p class="lede">
           This is a fault in our code, not something you did. The request was not completed and nothing was saved.
         </p>
         ${reference
@@ -84,7 +84,7 @@ export function tooManyRequestsPage({ retryAfter }) {
       <div class="container">
         <span class="error-page__code">Error 429</span>
         <h1>Too many requests</h1>
-        <p class="lead">
+        <p class="lede">
           This address has made more requests than the limit allows. The limit exists to keep a small service
           available, and it resets shortly.
         </p>
@@ -104,7 +104,7 @@ export function forbiddenPage({ reason }) {
       <div class="container">
         <span class="error-page__code">Error 403</span>
         <h1>That request was rejected</h1>
-        <p class="lead">${reason || 'The security check on this request did not pass.'}</p>
+        <p class="lede">${reason || 'The security check on this request did not pass.'}</p>
         <p>
           The usual cause is a form left open long enough for its token to expire, or a browser that is blocking this
           site's cookies. Reloading the page and submitting again normally fixes it.

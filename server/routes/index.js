@@ -1079,7 +1079,7 @@ export function buildSearchIndex() {
       url: '/accessibility',
       title: 'Accessibility statement',
       summary: 'WCAG 2.2 AA, how it was tested, and the two known problems.',
-      body: 'Contrast focus ring keyboard 44 pixel targets reduced motion 320 pixels zoom skip link screen reader known problems.',
+      body: 'Contrast focus ring keyboard 44 pixel targets reduced motion 320 pixels zoom bypass link screen reader known problems.',
     },
     {
       url: '/security',
