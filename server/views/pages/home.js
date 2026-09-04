@@ -31,9 +31,9 @@ export function homePage({ csrf, reviewSummary, accountDeleted = false }) {
 
     <section class="hero">
       <div class="container">
-        <div class="split">
-          <div>
-            <p class="hero__eyebrow">${icon('shield')} Network-level filtering</p>
+        <div class="hero__grid">
+          <div class="hero__copy">
+            <p class="eyebrow hero__eyebrow">${icon('shield')} Network-level DNS filtering</p>
             <h1>Block gambling sites on every device in the house, from one place</h1>
             <p class="lead">
               ${site.name} is a DNS resolver that refuses to look up gambling domains. Point your router at it once
@@ -42,7 +42,7 @@ export function homePage({ csrf, reviewSummary, accountDeleted = false }) {
             </p>
 
             <form
-              class="stack"
+              class="stack hero__form"
               id="coverage-form"
               action="/coverage"
               method="post"
@@ -50,47 +50,49 @@ export function homePage({ csrf, reviewSummary, accountDeleted = false }) {
             >
               <h2 class="visually-hidden" id="coverage-form-heading">Check whether a domain is blocked</h2>
               ${csrfField(csrf)}
-              <div class="field">
-                <label class="field__label" for="field-domain">Check a domain against our lists</label>
-                <div class="input-group">
-                  <input
-                    class="field__control"
-                    id="field-domain"
-                    name="domain"
-                    type="text"
-                    inputmode="url"
-                    autocomplete="off"
-                    spellcheck="false"
-                    placeholder="example.com"
-                    maxlength="253"
-                    aria-describedby="field-domain-hint"
-                  />
-                  <button type="submit" class="btn btn--primary">${icon('search')}<span>Check</span></button>
-                </div>
-                <p class="field__hint" id="field-domain-hint">
-                  No account, no email address. The lookup runs against the same lists the resolver uses.
-                </p>
+              <label class="field__label" for="field-domain">Check a domain against our lists</label>
+              <div class="input-group">
+                <input
+                  class="field__control"
+                  id="field-domain"
+                  name="domain"
+                  type="text"
+                  inputmode="url"
+                  autocomplete="off"
+                  spellcheck="false"
+                  placeholder="example.com"
+                  maxlength="253"
+                  aria-describedby="field-domain-hint"
+                />
+                <button type="submit" class="btn btn--primary">${icon('search')}<span>Check</span></button>
               </div>
+              <p class="field__hint" id="field-domain-hint">
+                No account, no email address. The lookup runs against the same lists the resolver uses.
+              </p>
               <div class="coverage-result" id="coverage-result" role="region" aria-label="Coverage result" hidden></div>
             </form>
 
             <p class="hero__note">
-              ${data.total} suffix rules across ${data.listCount} lists, each covering every subdomain. Last reviewed
+              <span class="hero__rule">${data.total} suffix rules</span> across ${data.listCount} lists, each covering
+              every subdomain. Last reviewed
               <time datetime="${data.lastUpdated}">${formatDate(data.lastUpdated)}</time>.
               <a href="/coverage">See every entry</a>.
             </p>
           </div>
 
-          <div class="stack">
-            <img
-              src="/img/network-diagram.svg"
-              width="520"
-              height="360"
-              alt="Diagram: devices on a home network send DNS queries to a NetGuard resolver, which answers ordinary domains from its cache or an upstream resolver and refuses to answer domains on the gambling blocklist."
-              loading="eager"
-              decoding="async"
-            />
-            <div class="panel panel--sunken">
+          <div class="hero__aside">
+            <figure class="hero__diagram">
+              <img
+                src="/img/network-diagram.svg"
+                width="520"
+                height="360"
+                alt="How NetGuard sits in a home network: phones, laptops and consoles ask the router for a site's address, the router forwards that request to the NetGuard resolver, and the resolver returns a normal answer for allowed sites and a block response for gambling domains."
+                loading="eager"
+                decoding="async"
+              />
+            </figure>
+            <div class="panel panel--honesty">
+              <p class="eyebrow panel__eyebrow">${icon('info')} Read before you rely on it</p>
               <h2>What this does not do</h2>
               <p class="text-sm">
                 DNS filtering is a speed bump, not a lock. Anyone with administrator rights can undo it in a minute,
@@ -105,9 +107,10 @@ export function homePage({ csrf, reviewSummary, accountDeleted = false }) {
       </div>
     </section>
 
-    <section class="section">
+    <section class="section section--figures">
       <div class="container">
         <div class="section__intro">
+          <p class="eyebrow section__label">The figures</p>
           <h2>Why anyone bothers</h2>
           <p>
             These figures come from the Gambling Commission's annual survey. They are quoted with their source and
@@ -115,25 +118,24 @@ export function homePage({ csrf, reviewSummary, accountDeleted = false }) {
           </p>
         </div>
 
-        <div class="stack-lg">
-          <ul class="stat-grid stat-grid--3">
-            <li>${stat(statistics.problemGambling)}</li>
-            <li>${stat(statistics.youngAdults)}</li>
-            <li>${stat(statistics.affectedOthers)}</li>
-          </ul>
+        <ul class="figures figures--3">
+          <li>${stat(statistics.problemGambling)}</li>
+          <li>${stat(statistics.youngAdults)}</li>
+          <li>${stat(statistics.affectedOthers)}</li>
+        </ul>
 
-          <div class="panel panel--sunken">
-            <h3>A note on these figures</h3>
-            <p class="text-sm text-muted">${statisticsCaveat}</p>
-          </div>
-        </div>
+        <aside class="panel panel--note">
+          <p class="eyebrow panel__eyebrow">${icon('info')} A note on these figures</p>
+          <p class="text-sm">${statisticsCaveat}</p>
+        </aside>
       </div>
     </section>
 
-    <section class="section">
+    <section class="section section--how">
       <div class="container">
         <div class="split">
           <div>
+            <p class="eyebrow section__label">The mechanism</p>
             <h2>How it works</h2>
             <p>
               Every time a device opens a website it first asks a DNS resolver to turn the name into an address.
@@ -149,29 +151,33 @@ export function homePage({ csrf, reviewSummary, accountDeleted = false }) {
 
           <ul class="feature-list">
             <li>
-              ${icon('server')}
+              <span class="feature-list__mark">${icon('server')}</span>
               <div>
+                <p class="feature-list__num">01</p>
                 <h3>One change, every device</h3>
                 <p>Set it on the router and anything joining the network is covered, including devices you cannot configure.</p>
               </div>
             </li>
             <li>
-              ${icon('lock')}
+              <span class="feature-list__mark">${icon('lock')}</span>
               <div>
+                <p class="feature-list__num">02</p>
                 <h3>No query logging by default</h3>
                 <p>A DNS log is a diary of a household. Ours is off unless you turn it on, and we explain what turning it on means.</p>
               </div>
             </li>
             <li>
-              ${icon('document')}
+              <span class="feature-list__mark">${icon('document')}</span>
               <div>
+                <p class="feature-list__num">03</p>
                 <h3>Lists you can read</h3>
                 <p>Every rule is published with the register it came from and the date a person last checked it.</p>
               </div>
             </li>
             <li>
-              ${icon('shield')}
+              <span class="feature-list__mark">${icon('shield')}</span>
               <div>
+                <p class="feature-list__num">04</p>
                 <h3>Support routes are never blocked</h3>
                 <p>GamCare, GAMSTOP, BeGambleAware, the NHS and Citizens Advice can never be filtered, whatever a list says.</p>
               </div>
@@ -181,9 +187,10 @@ export function homePage({ csrf, reviewSummary, accountDeleted = false }) {
       </div>
     </section>
 
-    <section class="section">
+    <section class="section section--reviews">
       <div class="container">
         <div class="section__intro">
+          <p class="eyebrow section__label">Word of mouth</p>
           <h2>Reviews</h2>
         </div>
         ${reviewSummary.count === 0
@@ -202,10 +209,11 @@ export function homePage({ csrf, reviewSummary, accountDeleted = false }) {
       </div>
     </section>
 
-    <section class="section">
+    <section class="section section--notes">
       <div class="container">
         <div class="split">
           <div>
+            <p class="eyebrow section__label">From the journal</p>
             <h2>Recent notes</h2>
             <ul class="post-list">
               ${posts.map(
@@ -223,8 +231,9 @@ export function homePage({ csrf, reviewSummary, accountDeleted = false }) {
             <p><a href="/blog">All notes</a></p>
           </div>
 
-          <div class="panel panel--accent">
-            <h2>If gambling is causing harm right now</h2>
+          <aside class="panel panel--callout">
+            <p class="eyebrow panel__eyebrow">${icon('phone')} If gambling is causing harm right now</p>
+            <h2>There is help, and it is free</h2>
             <p>
               The National Gambling Helpline is free, confidential and open ${site.helpline.hours}.
             </p>
@@ -235,14 +244,15 @@ export function homePage({ csrf, reviewSummary, accountDeleted = false }) {
               Run by GamCare. ${site.helpline.note}
               <a href="/help">Other support routes</a>.
             </p>
-          </div>
+          </aside>
         </div>
       </div>
     </section>
 
-    <section class="section">
+    <section class="section section--start">
       <div class="container">
         <div class="section__intro">
+          <p class="eyebrow section__label">Take the first step</p>
           <h2>Start with one device</h2>
           <p>
             The quick start changes DNS settings on a single machine so you can see what filtering does before you

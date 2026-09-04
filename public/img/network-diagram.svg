@@ -1,77 +1,83 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 340" width="800" height="340" role="img" aria-labelledby="netdiag-title netdiag-desc">
   <title id="netdiag-title">Where NetGuard sits in a home network</title>
-  <desc id="netdiag-desc">Devices on the home network send DNS queries to the router. The router forwards them to the NetGuard resolver. Queries for allowed domains are answered normally; queries matching a blocklist are answered with a block response, so the device never connects to the site.</desc>
+  <desc id="netdiag-desc">Devices on the home network ask the router for an address. The router forwards the request to the NetGuard resolver, which answers allowed domains normally and answers gambling domains with a block response, so the device never connects to the site.</desc>
 
-  <rect width="800" height="340" fill="#fbfbfa"/>
+  <g font-family="IBM Plex Sans, Helvetica, Arial, sans-serif" font-size="13" fill="#514b41">
 
-  <g font-family="IBM Plex Sans, Helvetica, Arial, sans-serif" font-size="13" fill="#55554f">
+    <!-- label markers for the three columns -->
+    <g font-family="IBM Plex Mono, Menlo, Consolas, monospace" font-size="10" letter-spacing="2" fill="#918770" text-anchor="middle">
+      <text x="90" y="34">HOME NETWORK</text>
+      <text x="296" y="34">ROUTER</text>
+      <text x="511" y="34">RESOLVER</text>
+      <text x="710" y="34">OUTCOME</text>
+    </g>
 
     <!-- devices -->
     <g>
-      <rect x="24" y="60" width="132" height="52" rx="6" fill="#ffffff" stroke="#8c8c88"/>
-      <text x="90" y="83" text-anchor="middle" font-size="14" font-weight="600" fill="#1a1a17">Laptop</text>
-      <text x="90" y="101" text-anchor="middle">192.168.1.24</text>
+      <rect x="24" y="62" width="132" height="76" rx="8" fill="#fffdfb" stroke="#8a8172" stroke-width="1.25"/>
+      <text x="90" y="90" text-anchor="middle" font-size="14" font-weight="600" fill="#1a1713">Laptop</text>
+      <text x="90" y="108" text-anchor="middle" fill="#6b6459">192.168.1.24</text>
 
-      <rect x="24" y="132" width="132" height="52" rx="6" fill="#ffffff" stroke="#8c8c88"/>
-      <text x="90" y="155" text-anchor="middle" font-size="14" font-weight="600" fill="#1a1a17">Phone</text>
-      <text x="90" y="173" text-anchor="middle">192.168.1.31</text>
+      <rect x="24" y="154" width="132" height="76" rx="8" fill="#fffdfb" stroke="#8a8172" stroke-width="1.25"/>
+      <text x="90" y="182" text-anchor="middle" font-size="14" font-weight="600" fill="#1a1713">Phone</text>
+      <text x="90" y="200" text-anchor="middle" fill="#6b6459">192.168.1.31</text>
 
-      <rect x="24" y="204" width="132" height="52" rx="6" fill="#ffffff" stroke="#8c8c88"/>
-      <text x="90" y="227" text-anchor="middle" font-size="14" font-weight="600" fill="#1a1a17">Games console</text>
-      <text x="90" y="245" text-anchor="middle">192.168.1.44</text>
+      <rect x="24" y="246" width="132" height="76" rx="8" fill="#fffdfb" stroke="#8a8172" stroke-width="1.25"/>
+      <text x="90" y="274" text-anchor="middle" font-size="14" font-weight="600" fill="#1a1713">Console</text>
+      <text x="90" y="292" text-anchor="middle" fill="#6b6459">192.168.1.44</text>
     </g>
 
     <!-- router -->
-    <rect x="232" y="132" width="128" height="76" rx="6" fill="#ffffff" stroke="#3f3f3a" stroke-width="1.5"/>
-    <text x="296" y="164" text-anchor="middle" font-size="14" font-weight="600" fill="#1a1a17">Router</text>
-    <text x="296" y="182" text-anchor="middle">DNS server set</text>
-    <text x="296" y="198" text-anchor="middle">to NetGuard</text>
+    <rect x="232" y="132" width="128" height="78" rx="8" fill="#f6f2ec" stroke="#3a352d" stroke-width="1.25"/>
+    <text x="296" y="166" text-anchor="middle" font-size="14" font-weight="600" fill="#1a1713">Router</text>
+    <text x="296" y="185" text-anchor="middle" fill="#6b6459">DNS server set</text>
+    <text x="296" y="201" text-anchor="middle" fill="#6b6459">to NetGuard</text>
 
     <!-- resolver -->
-    <rect x="436" y="120" width="150" height="100" rx="6" fill="#eef3f1" stroke="#2d5b4e" stroke-width="1.5"/>
-    <text x="511" y="150" text-anchor="middle" font-size="14" font-weight="600" fill="#24483d">NetGuard resolver</text>
-    <text x="511" y="172" text-anchor="middle" fill="#24483d">Checks the query</text>
-    <text x="511" y="188" text-anchor="middle" fill="#24483d">against your</text>
-    <text x="511" y="204" text-anchor="middle" fill="#24483d">enabled lists</text>
+    <rect x="436" y="120" width="150" height="102" rx="8" fill="#f2f6f4" stroke="#2d5b4e" stroke-width="1.5"/>
+    <text x="511" y="152" text-anchor="middle" font-size="14" font-weight="600" fill="#24483d">NetGuard resolver</text>
+    <text x="511" y="175" text-anchor="middle" fill="#2d5b4e">Checks the query</text>
+    <text x="511" y="191" text-anchor="middle" fill="#2d5b4e">against your</text>
+    <text x="511" y="207" text-anchor="middle" fill="#2d5b4e">enabled lists</text>
 
     <!-- outcomes -->
-    <rect x="644" y="52" width="132" height="72" rx="6" fill="#ffffff" stroke="#8c8c88"/>
-    <text x="710" y="80" text-anchor="middle" font-size="14" font-weight="600" fill="#1a1a17">Allowed</text>
-    <text x="710" y="99" text-anchor="middle">Real answer</text>
-    <text x="710" y="115" text-anchor="middle">returned</text>
+    <rect x="644" y="52" width="132" height="78" rx="8" fill="#fffdfb" stroke="#8a8172" stroke-width="1.25"/>
+    <text x="710" y="82" text-anchor="middle" font-size="14" font-weight="600" fill="#1a1713">Allowed</text>
+    <text x="710" y="101" text-anchor="middle" fill="#6b6459">Real answer</text>
+    <text x="710" y="117" text-anchor="middle" fill="#6b6459">returned</text>
 
-    <rect x="644" y="216" width="132" height="72" rx="6" fill="#ffffff" stroke="#8c8c88"/>
-    <text x="710" y="244" text-anchor="middle" font-size="14" font-weight="600" fill="#1a1a17">Blocked</text>
-    <text x="710" y="263" text-anchor="middle">0.0.0.0 returned,</text>
-    <text x="710" y="279" text-anchor="middle">no connection</text>
+    <rect x="644" y="214" width="132" height="78" rx="8" fill="#f7ede0" stroke="#9a5f16" stroke-width="1.25"/>
+    <text x="710" y="244" text-anchor="middle" font-size="14" font-weight="600" fill="#7a4a12">Blocked</text>
+    <text x="710" y="263" text-anchor="middle" fill="#7a4a12">No address, no</text>
+    <text x="710" y="279" text-anchor="middle" fill="#7a4a12">connection</text>
 
     <!-- links: devices to router -->
-    <g stroke="#8c8c88" stroke-width="1.5" fill="none">
-      <path d="M156 86 C 196 86 196 160 232 160"/>
-      <path d="M156 158 H 232"/>
-      <path d="M156 230 C 196 230 196 182 232 182"/>
+    <g stroke="#8a8172" stroke-width="1.5" fill="none">
+      <path d="M156 100 C 196 100 196 165 232 165"/>
+      <path d="M156 192 H 232"/>
+      <path d="M156 284 C 196 284 196 212 232 212"/>
     </g>
 
     <!-- router to resolver -->
     <g fill="none">
-      <path d="M360 170 H 428" stroke="#3f3f3a" stroke-width="1.75" marker-end="url(#arrow-ink)"/>
+      <path d="M360 170 H 428" stroke="#3a352d" stroke-width="1.75" marker-end="url(#arrow-ink)"/>
     </g>
-    <text x="394" y="160" text-anchor="middle" font-size="12">query</text>
+    <text x="394" y="160" text-anchor="middle" font-size="12" fill="#6b6459">query</text>
 
     <!-- resolver to outcomes -->
-    <path d="M586 152 C 616 152 616 100 636 96" fill="none" stroke="#2d5b4e" stroke-width="1.75" marker-end="url(#arrow-pine)"/>
-    <path d="M586 190 C 616 190 616 244 636 248" fill="none" stroke="#b9761f" stroke-width="1.75" stroke-dasharray="5 4" marker-end="url(#arrow-clay)"/>
+    <path d="M586 152 C 616 152 616 96 636 92" fill="none" stroke="#2d5b4e" stroke-width="1.75" marker-end="url(#arrow-pine)"/>
+    <path d="M586 190 C 616 190 616 248 636 252" fill="none" stroke="#9a5f16" stroke-width="1.75" stroke-dasharray="5 4" marker-end="url(#arrow-clay)"/>
   </g>
 
   <defs>
     <marker id="arrow-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path d="M0 0 L10 5 L0 10 z" fill="#3f3f3a"/>
+      <path d="M0 0 L10 5 L0 10 z" fill="#3a352d"/>
     </marker>
     <marker id="arrow-pine" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path d="M0 0 L10 5 L0 10 z" fill="#2d5b4e"/>
     </marker>
     <marker id="arrow-clay" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path d="M0 0 L10 5 L0 10 z" fill="#b9761f"/>
+      <path d="M0 0 L10 5 L0 10 z" fill="#9a5f16"/>
     </marker>
   </defs>
 </svg>
