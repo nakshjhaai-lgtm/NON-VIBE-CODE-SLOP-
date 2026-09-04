@@ -490,6 +490,20 @@ blockquote {
   justify-content: space-between;
   gap: var(--space-4);
   min-height: var(--header-height);
+  /* Allow the wordmark and action cluster to shrink on narrow viewports.
+     Without an explicit zero basis, long labels can force the header past
+     the viewport even when the page itself has an overflow guard. */
+  min-width: 0;
+}
+.site-header__bar > * {
+  min-width: 0;
+}
+.brand {
+  flex: 0 1 auto;
+}
+.header-actions {
+  flex: 0 1 auto;
+  min-width: 0;
 }
 
 .brand {
@@ -1761,8 +1775,23 @@ body:has(.sticky-cta) .floating-stack {
 
 .search-form {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-2);
   margin-bottom: var(--space-6);
+}
+.search-form .input-group {
+  flex: 1 1 18rem;
+  min-width: min(100%, 18rem);
+  margin: 0;
+}
+.search-form > .btn {
+  flex: 0 1 auto;
+}
+@media (max-width: 25em) {
+  .search-form .input-group,
+  .search-form > .btn {
+    flex-basis: 100%;
+  }
 }
 .search-result {
   padding-block: var(--space-4);
