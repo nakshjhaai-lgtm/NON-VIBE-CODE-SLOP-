@@ -33,9 +33,9 @@ export function homePage({ csrf, reviewSummary, accountDeleted = false }) {
       <div class="container">
         <div class="hero__grid">
           <div class="hero__copy">
-            <p class="eyebrow hero__eyebrow">${icon('shield')} Network-level DNS filtering</p>
+            <p class="kicker hero__kicker">Network-level DNS filtering</p>
             <h1>Block gambling sites on every device in the house, from one place</h1>
-            <p class="lead">
+            <p class="lede">
               ${site.name} is a DNS resolver that refuses to look up gambling domains. Point your router at it once
               and every phone, laptop, console and television on the network is covered, with no software to install
               on any of them.
@@ -64,7 +64,7 @@ export function homePage({ csrf, reviewSummary, accountDeleted = false }) {
                   maxlength="253"
                   aria-describedby="field-domain-hint"
                 />
-                <button type="submit" class="btn btn--primary">${icon('search')}<span>Check</span></button>
+                <button type="submit" class="btn btn--primary"><span>Check</span></button>
               </div>
               <p class="field__hint" id="field-domain-hint">
                 No account, no email address. The lookup runs against the same lists the resolver uses.
@@ -83,7 +83,7 @@ export function homePage({ csrf, reviewSummary, accountDeleted = false }) {
           <div class="hero__aside">
             <figure class="hero__diagram">
               <img
-                src="/img/network-diagram.svg"
+                src="/img/network-diagram.png"
                 width="520"
                 height="360"
                 alt="Diagram showing NetGuard between a home router and the devices on its network."
@@ -92,7 +92,7 @@ export function homePage({ csrf, reviewSummary, accountDeleted = false }) {
               />
             </figure>
             <div class="panel panel--honesty">
-              <p class="eyebrow panel__eyebrow">${icon('info')} Read before you rely on it</p>
+              <p class="kicker panel__kicker">Read before you rely on it</p>
               <h2>What this does not do</h2>
               <p class="text-sm">
                 DNS filtering is a speed bump, not a lock. Anyone with administrator rights can undo it in a minute,
@@ -110,7 +110,7 @@ export function homePage({ csrf, reviewSummary, accountDeleted = false }) {
     <section class="section section--figures">
       <div class="container">
         <div class="section__intro">
-          <p class="eyebrow section__label">The figures</p>
+          <p class="kicker section__label">The figures</p>
           <h2>Why anyone bothers</h2>
           <p>
             These figures come from the Gambling Commission's annual survey. They are quoted with their source and
@@ -125,7 +125,7 @@ export function homePage({ csrf, reviewSummary, accountDeleted = false }) {
         </ul>
 
         <aside class="panel panel--note">
-          <p class="eyebrow panel__eyebrow">${icon('info')} A note on these figures</p>
+          <p class="kicker panel__kicker">${icon('info')} A note on these figures</p>
           <p class="text-sm">${statisticsCaveat}</p>
         </aside>
       </div>
@@ -135,7 +135,7 @@ export function homePage({ csrf, reviewSummary, accountDeleted = false }) {
       <div class="container">
         <div class="split">
           <div>
-            <p class="eyebrow section__label">The mechanism</p>
+            <p class="kicker section__label">The mechanism</p>
             <h2>How it works</h2>
             <p>
               Every time a device opens a website it first asks a DNS resolver to turn the name into an address.
@@ -190,7 +190,7 @@ export function homePage({ csrf, reviewSummary, accountDeleted = false }) {
     <section class="section section--reviews">
       <div class="container">
         <div class="section__intro">
-          <p class="eyebrow section__label">Word of mouth</p>
+          <p class="kicker section__label">Word of mouth</p>
           <h2>Reviews</h2>
         </div>
         ${reviewSummary.count === 0
@@ -213,7 +213,7 @@ export function homePage({ csrf, reviewSummary, accountDeleted = false }) {
       <div class="container">
         <div class="split">
           <div>
-            <p class="eyebrow section__label">From the journal</p>
+            <p class="kicker section__label">From the journal</p>
             <h2>Recent notes</h2>
             <ul class="post-list">
               ${posts.map(
@@ -232,7 +232,7 @@ export function homePage({ csrf, reviewSummary, accountDeleted = false }) {
           </div>
 
           <aside class="panel panel--callout">
-            <p class="eyebrow panel__eyebrow">${icon('phone')} If gambling is causing harm right now</p>
+            <p class="kicker panel__kicker">${icon('phone')} If gambling is causing harm right now</p>
             <h2>There is help, and it is free</h2>
             <p>
               The National Gambling Helpline is free, confidential and open ${site.helpline.hours}.
@@ -252,7 +252,7 @@ export function homePage({ csrf, reviewSummary, accountDeleted = false }) {
     <section class="section section--start">
       <div class="container">
         <div class="section__intro">
-          <p class="eyebrow section__label">Take the first step</p>
+          <p class="kicker section__label">Take the first step</p>
           <h2>Start with one device</h2>
           <p>
             The quick start changes DNS settings on a single machine so you can see what filtering does before you

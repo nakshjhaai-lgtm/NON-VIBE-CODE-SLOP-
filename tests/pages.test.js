@@ -70,9 +70,9 @@ describe('every page', () => {
       assert.equal(h1s.length, 1, `${path} has ${h1s.length} h1 elements, expected exactly 1`);
 
       assert.match(body, /<link rel="canonical" href="https:\/\//, `${path} has no canonical URL`);
-      assert.match(body, /class="skip-link"/, `${path} has no skip link`);
+      assert.match(body, /class="bypass-link"/, `${path} has no bypass link`);
       assert.match(body, /<footer class="site-footer">/, `${path} has no footer`);
-      assert.match(body, /id="main"/, `${path} has no main landmark`);
+      assert.match(body, /id="content"/, `${path} has no main landmark`);
       assert.match(body, /<meta name="viewport"/, `${path} has no viewport meta`);
     });
   }

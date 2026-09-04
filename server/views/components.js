@@ -281,7 +281,7 @@ export function pageHeader({ title, lead, updated, meta }) {
     <div class="page-header">
       <div class="container">
         <h1>${title}</h1>
-        ${lead ? html`<p class="lead">${lead}</p>` : ''}
+        ${lead ? html`<p class="lede">${lead}</p>` : ''}
         ${updated || meta
           ? html`<p class="page-header__meta">
               ${updated ? html`Last updated <time datetime="${updated}">${formatDate(updated)}</time>` : ''}

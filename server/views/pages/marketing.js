@@ -794,7 +794,7 @@ export function accessibilityPage() {
             <li>Headings run in order with no levels skipped, and every page has exactly one <code class="mono">h1</code>.</li>
             <li>Images carry descriptive alternative text; decorative SVG is hidden from assistive technology.</li>
             <li>Form fields have real labels, errors are announced, and an error summary at the top of the form links to each field.</li>
-            <li>A skip link is the first focusable element on every page.</li>
+            <li>A bypass link is the first focusable element on every page.</li>
             <li>Motion respects <code class="mono">prefers-reduced-motion</code>: transitions are reduced to near zero rather than merely shortened.</li>
             <li>Text reflows to 320 pixels wide without horizontal scrolling, and remains usable at 200% zoom.</li>
           </ul>

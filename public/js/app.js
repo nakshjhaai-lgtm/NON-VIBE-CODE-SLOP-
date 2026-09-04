@@ -70,8 +70,8 @@ function initTheme() {
 /* ------------------------------------------------------------ mobile menu */
 
 function initMobileNav() {
-  const toggle = document.getElementById('nav-toggle');
-  const nav = document.getElementById('mobile-nav');
+  const toggle = document.getElementById('menu-toggle');
+  const nav = document.getElementById('drawer');
   if (!toggle || !nav) return;
 
   const setOpen = (open) => {
@@ -107,7 +107,7 @@ function initMobileNav() {
 /* -------------------------------------------------- header + scroll state */
 
 function initScrollUi() {
-  const header = document.getElementById('site-header');
+  const header = document.getElementById('masthead');
   const bar = document.getElementById('scroll-progress-bar');
   const toTop = document.getElementById('back-to-top');
 
@@ -115,7 +115,7 @@ function initScrollUi() {
     toTop.addEventListener('click', () => {
       window.scrollTo({ top: 0, behavior: prefersReducedMotion.matches ? 'auto' : 'smooth' });
       // Move focus to the top of the document, not just the viewport.
-      const main = document.getElementById('main');
+      const main = document.getElementById('content');
       if (main) main.focus({ preventScroll: true });
     });
   }

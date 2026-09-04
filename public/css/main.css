@@ -179,7 +179,7 @@ li {
   max-width: var(--measure);
 }
 
-.lead {
+.lede {
   font-size: var(--text-md);
   color: var(--text-secondary);
   line-height: var(--leading-normal);
@@ -211,7 +211,9 @@ pre {
   color: var(--text-on-inverse);
   padding: var(--space-4);
   border-radius: var(--radius-md);
-  /* Code lines are not reflowed, so the block scrolls rather than the page. */
+  /* Code lines are not reflowed, so the block scrolls rather than the page.
+     max-width keeps the box inside its grid track; the scroll happens inside. */
+  max-width: 100%;
   overflow-x: auto;
   line-height: var(--leading-snug);
 }
@@ -333,7 +335,7 @@ blockquote {
 
 /* --------------------------- Skip link ----------------------------------- */
 
-.skip-link {
+.bypass-link {
   position: absolute;
   left: var(--space-4);
   top: calc(var(--space-2) * -12);
@@ -347,7 +349,7 @@ blockquote {
   text-decoration: none;
   transition: top var(--duration-fast) var(--ease-standard);
 }
-.skip-link:focus {
+.bypass-link:focus {
   top: var(--space-2);
 }
 
@@ -470,7 +472,7 @@ blockquote {
 
 /* -------------------------------- Header --------------------------------- */
 
-.site-header {
+.masthead {
   position: sticky;
   top: 0;
   z-index: 50;
@@ -480,11 +482,11 @@ blockquote {
 
 /* Elevation appears only once the page has actually scrolled, so the header
    never "jitters" between two states at rest. */
-.site-header[data-scrolled="true"] {
+.masthead[data-scrolled="true"] {
   box-shadow: var(--shadow-1);
 }
 
-.site-header__bar {
+.masthead__bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -495,7 +497,7 @@ blockquote {
      the viewport even when the page itself has an overflow guard. */
   min-width: 0;
 }
-.site-header__bar > * {
+.masthead__bar > * {
   min-width: 0;
 }
 .brand {
@@ -535,10 +537,10 @@ blockquote {
   color: var(--emphasis);
 }
 
-.site-nav {
+.main-nav {
   display: none;
 }
-.site-nav__list {
+.main-nav__list {
   display: flex;
   align-items: center;
   gap: var(--space-1);
@@ -546,10 +548,10 @@ blockquote {
   margin: 0;
   padding: 0;
 }
-.site-nav__list li {
+.main-nav__list li {
   max-width: none;
 }
-.site-nav__link {
+.main-nav__link {
   display: block;
   padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-sm);
@@ -558,14 +560,14 @@ blockquote {
   font-weight: var(--weight-medium);
   text-decoration: none;
 }
-.site-nav__link:visited {
+.main-nav__link:visited {
   color: var(--text-secondary);
 }
-.site-nav__link:hover {
+.main-nav__link:hover {
   background-color: var(--bg-inset);
   color: var(--text-primary);
 }
-.site-nav__link[aria-current="page"] {
+.main-nav__link[aria-current="page"] {
   color: var(--text-primary);
   font-weight: var(--weight-semibold);
   box-shadow: inset 0 -2px 0 0 var(--accent);
@@ -582,7 +584,7 @@ blockquote {
   flex-wrap: wrap;
 }
 
-.nav-toggle {
+.menu-toggle {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
@@ -595,22 +597,22 @@ blockquote {
   cursor: pointer;
 }
 
-.mobile-nav {
+.drawer {
   border-top: var(--border-hairline) solid var(--border-subtle);
   padding-block: var(--space-3);
 }
-.mobile-nav[hidden] {
+.drawer[hidden] {
   display: none;
 }
-.mobile-nav__list {
+.drawer__list {
   list-style: none;
   margin: 0;
   padding: 0;
 }
-.mobile-nav__list li {
+.drawer__list li {
   max-width: none;
 }
-.mobile-nav__link {
+.drawer__link {
   display: block;
   padding: var(--space-3) var(--space-2);
   min-height: 2.75rem;
@@ -618,18 +620,18 @@ blockquote {
   text-decoration: none;
   border-bottom: var(--border-hairline) solid var(--border-subtle);
 }
-.mobile-nav__link[aria-current="page"] {
+.drawer__link[aria-current="page"] {
   font-weight: var(--weight-semibold);
   border-left: var(--border-strong) solid var(--accent);
   padding-left: var(--space-3);
 }
 
 @media (min-width: 62em) {
-  .site-nav {
+  .main-nav {
     display: block;
   }
-  .nav-toggle,
-  .mobile-nav {
+  .menu-toggle,
+  .drawer {
     display: none;
   }
 }
@@ -746,7 +748,7 @@ blockquote {
 .panel > h2:first-child {
   margin-top: 0;
 }
-.panel__eyebrow {
+.panel__kicker {
   margin-bottom: var(--space-3);
 }
 
@@ -761,7 +763,7 @@ blockquote {
   background-color: var(--accent-subtle-bg);
   border-color: var(--accent-subtle-border);
 }
-.panel--note .panel__eyebrow {
+.panel--note .panel__kicker {
   color: var(--accent-text);
 }
 
@@ -771,7 +773,7 @@ blockquote {
   background-color: var(--emphasis-subtle-bg);
   border-color: var(--emphasis-subtle-border);
 }
-.panel--callout .eyebrow {
+.panel--callout .kicker {
   color: var(--emphasis-text);
 }
 .panel--callout h2 {
@@ -791,7 +793,14 @@ blockquote {
 
 .grid {
   display: grid;
+  /* An explicit base track stops the implicit auto track from sizing to the
+     widest item (a code block or table) and pushing the page sideways on
+     narrow viewports. */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-5);
+}
+.grid > * {
+  min-width: 0;
 }
 @media (min-width: 40em) {
   .grid--2 {
@@ -814,8 +823,14 @@ blockquote {
 
 .split {
   display: grid;
+  /* Same guard as .grid: below the two-column breakpoint the single track
+     must be sized by the container, not by the widest pre/table inside. */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-6);
   align-items: start;
+}
+.split > * {
+  min-width: 0;
 }
 @media (min-width: 56em) {
   .split {
@@ -837,6 +852,7 @@ blockquote {
   padding: 0;
   margin: 0;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
 }
 .feature-list > li {
   max-width: none;
@@ -895,6 +911,7 @@ blockquote {
   padding: 0;
   margin: 0;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   background-color: var(--bg-surface);
   border: var(--border-hairline) solid var(--border-default);
   border-radius: var(--radius-md);
@@ -953,6 +970,7 @@ blockquote {
 /* A standalone figure drawn with a left rule (used outside the ledger). */
 .stat-grid {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-5);
   list-style: none;
   padding: 0;
@@ -977,6 +995,7 @@ blockquote {
 
 .table-wrap {
   overflow-x: auto;
+  max-width: 100%;
   border: var(--border-hairline) solid var(--border-subtle);
   border-radius: var(--radius-md);
 }
@@ -1566,8 +1585,12 @@ dialog h2 {
 }
 .footer-grid {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-6);
   margin-bottom: var(--space-7);
+}
+.footer-col {
+  min-width: 0;
 }
 @media (min-width: 40em) {
   .footer-grid {
@@ -1840,7 +1863,7 @@ mark {
   margin-bottom: var(--space-3);
   max-width: 20ch;
 }
-.page-header .lead {
+.page-header .lede {
   margin-bottom: 0;
   max-width: var(--measure);
 }
@@ -1853,12 +1876,12 @@ mark {
   color: var(--text-secondary);
 }
 
-/* --------------------------------- Eyebrow -------------------------------- */
+/* --------------------------------- Kicker --------------------------------- */
 
 /* The small uppercase monospace label used as a kicker above headings and
    section rules. It is the technical-manual voice: your eye is told where
    it is before it reads the headline. */
-.eyebrow {
+.kicker {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
@@ -1869,7 +1892,7 @@ mark {
   text-transform: uppercase;
   color: var(--accent-text);
 }
-.eyebrow svg {
+.kicker svg {
   width: 0.9rem;
   height: 0.9rem;
   flex: none;
@@ -1888,7 +1911,11 @@ mark {
 }
 .hero__grid {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-8);
+}
+.hero__grid > * {
+  min-width: 0;
 }
 @media (min-width: 56em) {
   .hero__grid {
@@ -1902,11 +1929,11 @@ mark {
   max-width: 15ch;
   text-wrap: balance;
 }
-.hero__eyebrow {
+.hero__kicker {
   margin-bottom: var(--space-5);
   color: var(--clay-700);
 }
-.hero .lead {
+.hero .lede {
   max-width: var(--measure);
   margin-bottom: var(--space-7);
 }
@@ -2136,8 +2163,12 @@ mark {
 
 .app-shell {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-6);
   padding-block: var(--space-6);
+}
+.app-shell > * {
+  min-width: 0;
 }
 @media (min-width: 60em) {
   .app-shell {
@@ -2201,11 +2232,15 @@ mark {
 
 .status-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
   padding: var(--space-3) 0;
   border-bottom: var(--border-hairline) solid var(--border-subtle);
+}
+.status-row > * {
+  min-width: 0;
 }
 .status-row:last-child {
   border-bottom: 0;
@@ -2215,6 +2250,8 @@ mark {
   gap: 2px;
   height: 1.5rem;
   align-items: stretch;
+  max-width: 100%;
+  overflow: hidden;
 }
 .uptime-bars span {
   width: 4px;
@@ -2296,13 +2333,13 @@ mark {
 /* -------------------------------- Print ---------------------------------- */
 
 @media print {
-  .site-header,
+  .masthead,
   .site-footer .footer-grid,
   .floating-stack,
   .sticky-cta,
   .cookie-banner,
   .scroll-progress,
-  .skip-link,
+  .bypass-link,
   .theme-control,
   .breadcrumbs,
   .toc,

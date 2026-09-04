@@ -31,21 +31,21 @@ describe('chrome present on every page', () => {
 
   test('skip to content is the first focusable element', () => {
     const firstLink = body.indexOf('<a ');
-    assert.ok(body.slice(firstLink, firstLink + 120).includes('class="skip-link"'), 'the skip link is not first');
-    assert.match(body, /class="skip-link" href="#main"/);
+    assert.ok(body.slice(firstLink, firstLink + 120).includes('class="bypass-link"'), 'the bypass link is not first');
+    assert.match(body, /class="bypass-link" href="#content"/);
   });
 
   test('the header is sticky and the logo links home', () => {
-    assert.match(body, /class="site-header"/);
-    assert.match(css, /\.site-header\s*\{[^}]*position:\s*sticky/);
+    assert.match(body, /class="masthead"/);
+    assert.match(css, /\.masthead\s*\{[^}]*position:\s*sticky/);
     assert.match(body, /<a class="brand" href="\/" aria-label="NetGuard home">/);
   });
 
   test('a mobile menu exists and is controlled accessibly', () => {
-    assert.match(body, /id="nav-toggle"/);
-    assert.match(body, /aria-controls="mobile-nav"/);
+    assert.match(body, /id="menu-toggle"/);
+    assert.match(body, /aria-controls="drawer"/);
     assert.match(body, /aria-expanded="false"/);
-    assert.match(body, /id="mobile-nav"[^>]*hidden/);
+    assert.match(body, /id="drawer"[^>]*hidden/);
   });
 
   test('a scroll progress bar and back-to-top button exist', () => {
@@ -362,7 +362,7 @@ describe('print and reduced motion', () => {
   test('a print stylesheet strips the interface', () => {
     assert.match(css, /@media print/);
     const print = css.slice(css.indexOf('@media print'));
-    for (const selector of ['.scroll-progress', '.skip-link', '.theme-control', '.toc', 'form']) {
+    for (const selector of ['.scroll-progress', '.bypass-link', '.theme-control', '.toc', 'form']) {
       assert.ok(print.includes(selector), `the print stylesheet does not hide ${selector}`);
     }
     assert.match(print, /a\[href\^="http"\]::after/, 'printed links do not show their URL');

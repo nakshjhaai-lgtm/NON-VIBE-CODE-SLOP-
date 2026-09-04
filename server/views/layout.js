@@ -3,7 +3,7 @@
  *
  * Every response goes through here, so the things that must never be missing
  * from a page cannot be forgotten: a unique title, a real meta description, a
- * canonical URL, social card tags, the skip link, breadcrumbs, and a footer
+ * canonical URL, social card tags, the bypass link, breadcrumbs, and a footer
  * with working links.
  *
  * The inline theme script is the only inline script on the site; it must run
@@ -16,7 +16,7 @@ import { site, primaryNav, footerNav, legal } from '../lib/site.js';
 import { env } from '../lib/env.js';
 
 /** Stable cache-busting suffix; a deployment never generates assets at runtime. */
-export const ASSET_VERSION = env('NETGUARD_ASSET_VERSION', '2026-08-28-2');
+export const ASSET_VERSION = env('NETGUARD_ASSET_VERSION', '2026-09-04-1');
 
 const v = (path) => `${path}?v=${ASSET_VERSION}`;
 
@@ -71,21 +71,21 @@ function header(currentPath, user) {
     href === '/' ? currentPath === '/' : currentPath === href || currentPath.startsWith(`${href}/`);
 
   return html`
-    <header class="site-header" id="site-header" data-scrolled="false">
+    <header class="masthead" id="masthead" data-scrolled="false">
       <div class="container">
-        <div class="site-header__bar">
+        <div class="masthead__bar">
           <a class="brand" href="/" aria-label="${site.name} home">
             ${logoMark()}
             <span>${site.name}</span>
           </a>
 
-          <nav class="site-nav" aria-label="Primary">
-            <ul class="site-nav__list">
+          <nav class="main-nav" aria-label="Primary">
+            <ul class="main-nav__list">
               ${primaryNav.map(
                 (item) => html`
                   <li>
                     <a
-                      class="site-nav__link"
+                      class="main-nav__link"
                       href="${item.href}"
                       ${isCurrent(item.href) ? raw('aria-current="page"') : ''}
                       >${item.label}</a
@@ -119,10 +119,10 @@ function header(currentPath, user) {
 
             <button
               type="button"
-              class="nav-toggle"
-              id="nav-toggle"
+              class="menu-toggle"
+              id="menu-toggle"
               aria-expanded="false"
-              aria-controls="mobile-nav"
+              aria-controls="drawer"
             >
               ${icon('menu')}
               <span class="visually-hidden">Menu</span>
@@ -130,13 +130,13 @@ function header(currentPath, user) {
           </div>
         </div>
 
-        <nav class="mobile-nav" id="mobile-nav" aria-label="Mobile" hidden>
-          <ul class="mobile-nav__list">
+        <nav class="drawer" id="drawer" aria-label="Mobile" hidden>
+          <ul class="drawer__list">
             ${primaryNav.map(
               (item) => html`
                 <li>
                   <a
-                    class="mobile-nav__link"
+                    class="drawer__link"
                     href="${item.href}"
                     ${isCurrent(item.href) ? raw('aria-current="page"') : ''}
                     >${item.label}</a
@@ -145,11 +145,11 @@ function header(currentPath, user) {
               `,
             )}
             <li>
-              <a class="mobile-nav__link" href="${user ? '/dashboard' : '/login'}"
+              <a class="drawer__link" href="${user ? '/dashboard' : '/login'}"
                 >${user ? 'Dashboard' : 'Sign in'}</a
               >
             </li>
-            <li><a class="mobile-nav__link" href="/search">Search</a></li>
+            <li><a class="drawer__link" href="/search">Search</a></li>
           </ul>
         </nav>
       </div>
@@ -337,7 +337,7 @@ export function layout({
     </script>
   </head>
   <body class="${bodyClass}">
-    <a class="skip-link" href="#main">Skip to main content</a>
+    <a class="bypass-link" href="#content">Skip to main content</a>
 
     <div class="scroll-progress" aria-hidden="true">
       <div class="scroll-progress__bar" id="scroll-progress-bar"></div>
@@ -345,7 +345,7 @@ export function layout({
 
     ${hideChrome ? '' : header(currentPath, user)} ${hideChrome ? '' : breadcrumbTrail(crumbs)}
 
-    <main id="main" tabindex="-1">${content}</main>
+    <main id="content" tabindex="-1">${content}</main>
 
     ${hideChrome ? '' : footer()} ${hideChrome ? '' : stickyCta(cta)} ${hideChrome ? '' : floatingStack()}
     ${hideChrome ? '' : cookieBanner()}
