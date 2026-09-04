@@ -11,7 +11,7 @@ Encrypted DNS is good for privacy and awkward for filtering, and both of those s
 
 ## What changes
 
-Classic DNS is plain UDP on port 53. Anyone on the path can read the query, and the operating system decides which resolver to ask. DNS over HTTPS (DoH) and DNS over TLS (DoT) encrypt the query. DoH additionally lets an application choose its own resolver and use it over port 443, where it is indistinguishable from ordinary web traffic.
+Classic DNS is plain UDP on port 53. Anyone on the path can read the query, and the operating system decides which resolver to ask. DNS over HTTPS (DoH) and DNS over TLS (DoT) encrypt the query. DoH also lets an application choose its own resolver and use it over port 443, where it is indistinguishable from ordinary web traffic.
 
 That last part is what breaks network filtering. It is not a bug in either technology. It is the point of the design.
 
@@ -57,7 +57,7 @@ The NetGuard resolver exposes one at:
 https://your-resolver.example/dns-query
 ```
 
-Point Firefox's custom provider at that URL, or install a configuration profile on macOS and iOS, and queries are both encrypted and filtered. On a network you control, you can additionally block outbound port 853 and the known DoH endpoints of the large public providers, which pushes applications back to your resolver. That is a blunt instrument and it will occasionally break something, so it belongs on a corporate network rather than a family one.
+Point Firefox's custom provider at that URL, or install a configuration profile on macOS and iOS, and queries are both encrypted and filtered. On a network you control, you can also block outbound port 853 and the known DoH endpoints of the large public providers, which pushes applications back to your resolver. That is a blunt instrument and it will occasionally break something, so it belongs on a corporate network rather than a family one.
 
 ## A note on honesty
 

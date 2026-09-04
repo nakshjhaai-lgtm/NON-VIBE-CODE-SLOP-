@@ -397,7 +397,7 @@ export function aboutPage() {
               src="/img/location-map.svg"
               width="520"
               height="380"
-              alt="Simplified map of the streets around Wharf Road, London N1. City Road runs diagonally across the north east, Wharf Road runs north from it, and the studio is marked on the west side of Wharf Road near the Regent's Canal."
+              alt="Schematic map of Wharf Road, London N1, with the studio marked."
               loading="lazy"
               decoding="async"
             />

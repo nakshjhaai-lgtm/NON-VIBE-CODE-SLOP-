@@ -86,7 +86,7 @@ export function homePage({ csrf, reviewSummary, accountDeleted = false }) {
                 src="/img/network-diagram.svg"
                 width="520"
                 height="360"
-                alt="How NetGuard sits in a home network: phones, laptops and consoles ask the router for a site's address, the router forwards that request to the NetGuard resolver, and the resolver returns a normal answer for allowed sites and a block response for gambling domains."
+                alt="Diagram showing NetGuard between a home router and the devices on its network."
                 loading="eager"
                 decoding="async"
               />
