@@ -20,8 +20,9 @@ export const ASSET_VERSION = env('NETGUARD_ASSET_VERSION', '2026-08-28-2');
 
 const v = (path) => `${path}?v=${ASSET_VERSION}`;
 
-function metaTags({ title, description, canonical, robots, image, type, published, modified }) {
-  const img = `${site.origin}${image || '/img/social-card.png'}`;
+function metaTags({ title, description, canonical, robots, image, type, published, modified, origin }) {
+  const base = origin || site.origin;
+  const img = `${base}${image || '/img/social-card.png'}`;
   return html`
     <meta name="description" content="${description}" />
     <link rel="canonical" href="${canonical}" />
@@ -283,9 +284,11 @@ export function layout({
   analyticsEnabled = true,
   hideChrome = false,
   stickyCta: cta = null,
+  origin,
 }) {
   const fullTitle = `${title} | ${site.name}`;
-  const url = canonical || `${site.origin}${currentPath}`;
+  const base = origin || site.origin;
+  const url = canonical || `${base}${currentPath}`;
 
   return html`<!doctype html>
 <html lang="${site.lang}" data-theme-preference="system">
@@ -293,7 +296,7 @@ export function layout({
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>${fullTitle}</title>
-    ${metaTags({ title: fullTitle, description, canonical: url, robots, image, type, published, modified })}
+    ${metaTags({ title: fullTitle, description, canonical: url, robots, image, type, published, modified, origin: base })}
 
     <meta name="theme-color" content="${site.themeColor}" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#14171a" media="(prefers-color-scheme: dark)" />

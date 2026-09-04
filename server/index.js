@@ -67,6 +67,13 @@ function buildContext(request, runtime, { url, nonce, https, cookies, csrfSecret
   const requestHeaders = plainHeaders(request.headers);
   const ip = runtime.ip || requestHeaders['x-nf-client-connection-ip'] || '0.0.0.0';
   const host = url.host || new URL(site.origin).host;
+  // The canonical origin is taken from the host the visitor actually reached,
+  // never from a hard-coded vanity domain. This keeps the canonical URL and
+  // social-card links pointing at the host the page is served from, so they
+  // never disagree with the address bar (a classic deployed-site bug). The
+  // scheme is always https: that is the scheme a public site is served over,
+  // and a mixed canonical is worse than none.
+  const origin = url && url.host ? `https://${url.host}` : site.origin;
   const req = {
     method: request.method,
     url: `${url.pathname}${url.search}`,
@@ -87,6 +94,7 @@ function buildContext(request, runtime, { url, nonce, https, cookies, csrfSecret
     request,
     ip,
     host,
+    origin,
     nonce,
     https,
     cookies,
@@ -116,6 +124,7 @@ function buildContext(request, runtime, { url, nonce, https, cookies, csrfSecret
         path: url.pathname,
         nonce,
         user,
+        origin,
         analyticsEnabled: ctx.analyticsAccepted,
         ...rest,
       });
